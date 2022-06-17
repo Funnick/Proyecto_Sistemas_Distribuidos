@@ -8,6 +8,11 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type ServerAP struct {
+	endpoint *Address
+	router   mux.Router
+}
+
 // Mocket Agents
 var agents []Agent
 
@@ -114,6 +119,22 @@ func searchAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	responseMessage.Message = "There is no agent with that description"
 	json.NewEncoder(w).Encode(responseMessage)
+}
+
+func NewServerAP(endpoint *Address) *ServerAP {
+	newServer := &ServerAP{endpoint: endpoint, router: *mux.NewRouter()}
+
+	newServer.router.HandleFunc("/ap/agents", getAgents).Methods(http.MethodGet)
+	newServer.router.HandleFunc("/ap/create", createNewAgent).Methods(http.MethodPost)
+	newServer.router.HandleFunc("/ap/delete", deleteAgent).Methods(http.MethodDelete)
+	newServer.router.HandleFunc("/ap/search", searchAgent).Methods(http.MethodGet)
+	newServer.router.HandleFunc("/ap/update", updateAgent).Methods(http.MethodPut)
+
+	return newServer
+}
+
+func (s *ServerAP) Run() {
+	log.Fatal(http.ListenAndServe(s.endpoint.IP+":"+s.endpoint.Port, &s.router))
 }
 
 // Main function

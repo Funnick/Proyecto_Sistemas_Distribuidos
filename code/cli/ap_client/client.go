@@ -1,18 +1,48 @@
 package ap_client
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 )
+
+var url string
+
+func setURL(newURL string) {
+	url = newURL
+}
+
+func LoadConfig() {
+	readFile, err := os.Open("ap_client/config.txt")
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	fileScanner := bufio.NewScanner(readFile)
+	fileScanner.Split(bufio.ScanLines)
+	var lines []string
+	for fileScanner.Scan() {
+		lines = append(lines, fileScanner.Text())
+	}
+	readFile.Close()
+	for _, line := range lines {
+		splitLine := strings.Split(line, " -> ")
+		if splitLine[0] == "url" {
+			setURL(splitLine[1])
+		}
+	}
+}
 
 // Request all agent to the server
 func GetAgentsRequest() (resp string, agentList []Agent) {
 	client := http.Client{Timeout: 10 * time.Second}
-	response, err := client.Get("http://127.0.0.1:5000/ap/agents")
+	response, err := client.Get(url + "/agents")
 	if err != nil {
 		log.Fatal(err)
 		return err.Error(), []Agent{}
@@ -41,7 +71,7 @@ func CreateAgentRequest(agentMessage CreateAgentMessage) (resp string) {
 		log.Fatal(err)
 		return err.Error()
 	}
-	response, err := client.Post("http://127.0.0.1:5000/ap/create", "aplication/json", bytes.NewBuffer(messageJson))
+	response, err := client.Post(url+"/create", "aplication/json", bytes.NewBuffer(messageJson))
 	if err != nil {
 		log.Fatal(err)
 		return err.Error()
@@ -72,7 +102,7 @@ func DeleteAgentRequest(aid string, password string) (resp string) {
 		log.Fatal(err)
 		return err.Error()
 	}
-	request, err := http.NewRequest(http.MethodDelete, "http://127.0.0.1:5000/ap/delete",
+	request, err := http.NewRequest(http.MethodDelete, url+"/delete",
 		bytes.NewBuffer(jsonRequestMessage))
 	if err != nil {
 		log.Fatal(err)
@@ -110,7 +140,7 @@ func SearchAgentRequest(description string) (resp string, agent Agent) {
 		log.Fatal(err)
 		return err.Error(), Agent{}
 	}
-	request, err := http.NewRequest(http.MethodGet, "http://127.0.0.1:5000/ap/search",
+	request, err := http.NewRequest(http.MethodGet, url+"/search",
 		bytes.NewBuffer(jsonRequestMessage))
 	if err != nil {
 		log.Fatal(err)
@@ -157,7 +187,7 @@ func UpdateAgentRequest(aid, password, newIP, newPort,
 		log.Fatal(err)
 		return
 	}
-	request, err := http.NewRequest(http.MethodPut, "http://127.0.0.1:5000/ap/update",
+	request, err := http.NewRequest(http.MethodPut, url+"/update",
 		bytes.NewBuffer(jsonRequestMessage))
 	request.Header.Add("Accept", "application/json")
 	response, err := client.Do(request)
