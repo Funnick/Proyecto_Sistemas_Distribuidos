@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -40,15 +39,13 @@ func createNewAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	var endpoint Address = Address{IP: requestMessage.IP, Port: requestMessage.Port}
 
-	// Split documentation
-	docSplit := docEngine(requestMessage.Description)
 	hash := sha1.New()
 	hash.Write([]byte(requestMessage.IP + requestMessage.Port + requestMessage.Name))
 	val := hash.Sum(nil)
 
 	var agent Agent = Agent{Name: requestMessage.Name, AID: val, EndPoint: &endpoint,
 		Password: requestMessage.Password, Description: requestMessage.Description,
-		Documentation: requestMessage.Documentation, DesSplit: docSplit}
+		Documentation: requestMessage.Documentation}
 	agents = append(agents, agent)
 	responseMessage := ResponseMessage{Message: "Agent create successfully"}
 	json.NewEncoder(w).Encode(responseMessage)
@@ -103,12 +100,15 @@ func updateAgent(w http.ResponseWriter, r *http.Request) {
 		if bytes.Equal(item.AID, val) {
 			if item.Password == requestMessage.Password {
 				var endpoint Address = Address{IP: requestMessage.NewIP, Port: requestMessage.NewPort}
+
 				hash.Reset()
 				hash.Write([]byte(requestMessage.NewIP + requestMessage.NewPort + requestMessage.NewName))
 				newVal := hash.Sum(nil)
-				var agent Agent = Agent{Name: requestMessage.Name, AID: newVal, EndPoint: &endpoint,
+
+				var agent Agent = Agent{Name: requestMessage.NewName, AID: newVal, EndPoint: &endpoint,
 					Password: requestMessage.NewPassword, Description: requestMessage.NewDescription,
 					Documentation: requestMessage.NewDocumentation}
+
 				agents[i] = agent
 				responseMessage.Message = "Agent updated successfully"
 			} else {
@@ -144,10 +144,15 @@ func searchAgent(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(responseMessage)
 }
 
-// Split documentation
-func docEngine(documentation string) []string {
-	docSplit := strings.Split(documentation, " ")
-	return docSplit
+// Local intersections
+func localSearch(query string) *[]Agent {
+	rankAgent := make([]Agent, 0)
+	for _, agent := range agents {
+		if SearchString(agent.Description, query) != -1 {
+			rankAgent = append(rankAgent, agent)
+		}
+	}
+	return &rankAgent
 }
 
 func NewServerAP(endpoint *Address) *ServerAP {

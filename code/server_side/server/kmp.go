@@ -2,23 +2,7 @@ package server
 
 import (
 	"fmt"
-	"strings"
 )
-
-type BooleanModel struct {
-	documents [][]string
-}
-
-func NewBooleanModel() *BooleanModel {
-	booleanModel := &(BooleanModel{documents: make([][]string, 0)})
-	return booleanModel
-}
-
-func search(query string) []Agent {
-	q := strings.Split(query, " ")
-	fmt.Print(q)
-	return agents
-}
 
 const (
 	PatternSize int = 100
@@ -123,4 +107,18 @@ func preKMP(x string) [PatternSize]int {
 		}
 	}
 	return kmpNext
+}
+
+func main() {
+	fmt.Println("Search First Position String:")
+	fmt.Println(SearchString("cocacola", "rata"))
+	fmt.Println(SearchString("Australia", "lia"))
+	fmt.Println(SearchString("cocacola", "cx"))
+	fmt.Println(SearchString("AABAACAADAABAABA", "AABA"))
+
+	fmt.Println("\nSearch Last Position String:")
+	fmt.Println(SearchNext("cocacola", "cola"))
+	fmt.Println(SearchNext("Australia", "lia"))
+	fmt.Println(SearchNext("cocacola", "cx"))
+	fmt.Println(SearchNext("AABAACAADAABAABAAABAACAADAABAABA", "AABA"))
 }

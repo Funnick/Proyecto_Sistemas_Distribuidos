@@ -12,5 +12,4 @@ type Agent struct {
 	Password      string   `json:"password"`
 	Description   string   `json:"description"`
 	Documentation string   `json:"documentation"`
-	DesSplit      []string
 }
