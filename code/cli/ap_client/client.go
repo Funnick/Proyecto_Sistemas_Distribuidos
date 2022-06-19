@@ -130,7 +130,7 @@ func DeleteAgentRequest(aid string, password string) (resp string) {
 }
 
 // Search an Agent
-func SearchAgentRequest(description string) (resp string, agent Agent) {
+func SearchAgentRequest(description string) (resp string, agent []Agent) {
 	client := http.Client{Timeout: 10 * time.Second}
 	var requestMessage SearchAgentMessage = SearchAgentMessage{
 		Description: description,
@@ -138,36 +138,36 @@ func SearchAgentRequest(description string) (resp string, agent Agent) {
 	jsonRequestMessage, err := json.Marshal(requestMessage)
 	if err != nil {
 		log.Fatal(err)
-		return err.Error(), Agent{}
+		return err.Error(), make([]Agent, 0)
 	}
 	request, err := http.NewRequest(http.MethodGet, url+"/search",
 		bytes.NewBuffer(jsonRequestMessage))
 	if err != nil {
 		log.Fatal(err)
-		return err.Error(), Agent{}
+		return err.Error(), make([]Agent, 0)
 	}
 	request.Header.Add("Accept", "application/json")
 	response, err := client.Do(request)
 	if err != nil {
 		log.Fatal(err)
-		return err.Error(), Agent{}
+		return err.Error(), make([]Agent, 0)
 	}
 	defer response.Body.Close()
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		log.Fatal(err)
-		return err.Error(), Agent{}
+		return err.Error(), make([]Agent, 0)
 	}
 	var responseMessage SearchAgentMessageResponse
 	err = json.Unmarshal(body, &responseMessage)
 	if err != nil {
 		log.Fatal(err)
-		return err.Error(), Agent{}
+		return err.Error(), make([]Agent, 0)
 	}
 	if len(responseMessage.Message) > 0 {
-		return responseMessage.Message, Agent{}
+		return responseMessage.Message, make([]Agent, 0)
 	}
-	return "", responseMessage.AgentFound
+	return responseMessage.Message, responseMessage.AgentsFound
 }
 
 func UpdateAgentRequest(aid, password, newIP, newPort,

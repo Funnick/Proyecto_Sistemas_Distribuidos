@@ -8,5 +8,7 @@ import (
 func main() {
 	ap_client.LoadConfig()
 	_, l := ap_client.GetAgentsRequest()
+	r, k := ap_client.SearchAgentRequest("000")
 	fmt.Println(l)
+	fmt.Println(r, k)
 }

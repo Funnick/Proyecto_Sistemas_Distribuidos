@@ -132,27 +132,26 @@ func searchAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var responseMessage SearchAgentMessageResponse
-	for _, item := range agents {
-		if item.Description == requestMessage.Description {
-			responseMessage.Message = ""
-			responseMessage.AgentFound = item
-			json.NewEncoder(w).Encode(responseMessage)
-			return
-		}
+	agentsFound := localSearch(requestMessage.Description)
+	if len(agentsFound) > 0 {
+		responseMessage.Message = ""
+		responseMessage.AgentFound = agentsFound
+		json.NewEncoder(w).Encode(responseMessage)
+		return
 	}
 	responseMessage.Message = "There is no agent with that description"
 	json.NewEncoder(w).Encode(responseMessage)
 }
 
 // Local intersections
-func localSearch(query string) *[]Agent {
+func localSearch(query string) []Agent {
 	rankAgent := make([]Agent, 0)
 	for _, agent := range agents {
 		if SearchString(agent.Description, query) != -1 {
 			rankAgent = append(rankAgent, agent)
 		}
 	}
-	return &rankAgent
+	return rankAgent
 }
 
 func NewServerAP(endpoint *Address) *ServerAP {
