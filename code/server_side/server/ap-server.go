@@ -201,11 +201,11 @@ func Encoder(agents *[]Agent) {
 // Main function
 func StartServer(ip string, port string) {
 	// Adding agents mock data
-	agents = append(agents, Agent{AID: make([]byte, 1),
+	agents = append(agents, Agent{Name: "Suma", AID: make([]byte, 1),
 		EndPoint: &Address{IP: "127.0.0.1", Port: "8000"},
 		Password: "qwer", Description: "Something1",
 		Documentation: "Some documentation1"})
-	agents = append(agents, Agent{AID: make([]byte, 1),
+	agents = append(agents, Agent{Name: "Resta", AID: make([]byte, 1),
 		EndPoint: &Address{IP: "192.168.0.1", Port: "5000"},
 		Password: "rewq", Description: "Something2",
 		Documentation: "Some documentation2"})

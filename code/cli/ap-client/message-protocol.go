@@ -27,7 +27,7 @@ type SearchAgentMessageResponse struct {
 }
 
 type UpdateAgentMessage struct {
-	AID              string `json:"aid"`
+	Name             string `json:"name"`
 	Password         string `json:"password"`
 	NewIP            string `json:"newIp"`
 	NewPort          string `json:"newPort"`

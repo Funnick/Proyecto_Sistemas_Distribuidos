@@ -19,7 +19,7 @@ func setURL(newURL string) {
 }
 
 func LoadConfig() {
-	readFile, err := os.Open("ap_client/config.txt")
+	readFile, err := os.Open("ap-client/config.cfg")
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -32,7 +32,7 @@ func LoadConfig() {
 	}
 	readFile.Close()
 	for _, line := range lines {
-		splitLine := strings.Split(line, " -> ")
+		splitLine := strings.Split(line, " ")
 		if splitLine[0] == "url" {
 			setURL(splitLine[1])
 		}
@@ -170,11 +170,11 @@ func SearchAgentRequest(description string) (resp string, agent []Agent) {
 	return responseMessage.Message, responseMessage.AgentsFound
 }
 
-func UpdateAgentRequest(aid, password, newIP, newPort,
+func UpdateAgentRequest(name, password, newIP, newPort,
 	newPassword, newDescription, newDocumentation string) (resp string) {
 	client := http.Client{Timeout: 10 * time.Second}
 	var requestMessage UpdateAgentMessage = UpdateAgentMessage{
-		AID:              aid,
+		Name:             name,
 		Password:         password,
 		NewIP:            newIP,
 		NewPort:          newPort,
@@ -189,6 +189,10 @@ func UpdateAgentRequest(aid, password, newIP, newPort,
 	}
 	request, err := http.NewRequest(http.MethodPut, url+"/update",
 		bytes.NewBuffer(jsonRequestMessage))
+	if err != nil {
+		log.Fatal(err)
+		return err.Error()
+	}
 	request.Header.Add("Accept", "application/json")
 	response, err := client.Do(request)
 	if err != nil {
@@ -209,3 +213,9 @@ func UpdateAgentRequest(aid, password, newIP, newPort,
 	}
 	return responseMessage.Message
 }
+
+func updARIP()            {}
+func updARPort()          {}
+func updARName()          {}
+func updARDescription()   {}
+func updARDocumentation() {}
