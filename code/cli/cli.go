@@ -39,21 +39,9 @@ func flags() {
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
 			Name:        "config, c",
-			Value:       "",
+			FilePath:    "./ap_client/config.txt",
 			Usage:       "Load configuration from `FILE`",
 			Destination: &conf,
-		},
-		&cli.StringFlag{
-			Name:        "aid",
-			Value:       "",
-			Usage:       "Agent id",
-			Destination: &aid,
-		},
-		&cli.StringFlag{
-			Name:        "password, pass, p",
-			Value:       "",
-			Usage:       "Password that gives access to an agent",
-			Destination: &password,
 		},
 	}
 }
@@ -63,10 +51,11 @@ func commnads() {
 	app.Commands = []cli.Command{
 		{
 			Name:    "load-conf",
-			Aliases: []string{"l"},
+			Aliases: []string{"L"},
 			Usage:   "Load a config txt",
 			Action: func(c *cli.Context) error {
-				if conf == "" {
+				conf_path := c.Args().First()
+				if conf_path == "" {
 					ap_client.LoadConfig()
 				} else {
 					//TODO: agregar una funcion que lea de un txt
@@ -75,74 +64,88 @@ func commnads() {
 				return nil
 			},
 		},
-        {
-            Name: "get-agents",     
-            Aliases: []string{"g"},
-            Usage: "Request all agent to the server",
-            Action: func (c *cli.Context) error {
-                resp, agentList := ap_client.GetAgentsRequest()
-                fmt.Println(resp, agentList) 
-                return nil
-            },
-            
-        },
-        // {
-        //     Name: "create-agent",     
-        //     Aliases: []string{"c"},
-        //     Usage: "Create new agent",
-        //     Action: func (c *cli.Context) error {
-        //         resp := ap_client.CreateAgentRequest() //TODO: ver como parsear de consola un CreateAgentMessage
-        //         fmt.Println(resp) 
-        //         return nil
-        //     },
-            
-        // },
-        {
-            Name: "delete-agent",     
-            Aliases: []string{"d"},
-            Usage: "Delete an agent from the server",
-            Action: func (c *cli.Context) error {
-                resp := ap_client.DeleteAgentRequest(aid, password)  // TODO: ver como leer bien la contra y el id
-                fmt.Println(resp) 
-                return nil
-            },
-            
-        },
+		{
+			Name:    "get-agents",
+			Aliases: []string{"G"},
+			Usage:   "Request all agent to the server",
+			Action: func(c *cli.Context) error {
+				resp, agentList := ap_client.GetAgentsRequest()
+				fmt.Println(resp, agentList)
+				return nil
+			},
+		},
+		// {
+		//     Name: "create-agent",
+		//     Aliases: []string{"C"},
+		//     Usage: "Create new agent",
+		//     Action: func (c *cli.Context) error {
+		//         resp := ap_client.CreateAgentRequest() //TODO: ver como parsear de consola un CreateAgentMessage
+		//         fmt.Println(resp)
+		//         return nil
+		//     },
 
-        {
-            Name: "search-agent",     
-            Aliases: []string{"s"},
-            Usage: "Search an Agent",
-            Action: func (c *cli.Context) error {
-                description := c.Args().Get(0)
-                resp, _ := ap_client.SearchAgentRequest(description) //TODO: ver como parsear de consola un CreateAgentMessage
-                fmt.Println(resp) 
-                return nil
-            },
-            
-        },
-        // {
-        //     Name: "update-agent",     
-        //     Aliases: []string{"u"},
-        //     Usage: "Update an existing agent",
-        //     Action: func (c *cli.Context) error {
-        //         resp := ap_client.UpdateAgentRequest() //TODO: ver como parsear de consola un CreateAgentMessage
-        //         fmt.Println(resp) 
-        //         return nil
-        //     },
-            
-        // },
- 
+		// },
+		{
+			Name:    "delete-agent",
+			Aliases: []string{"D"},
+			Usage:   "Delete an agent from the server using [-a aid] [-p pswrd] parameters",
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "aid, a",
+					Value:       "",
+					Usage:       "Agent id",
+					Destination: &aid,
+				},
+				&cli.StringFlag{
+					Name:        "password, pass, p",
+					Value:       "",
+					Usage:       "Password that gives access to an agent",
+					Destination: &password,
+				},
+			},
+
+			Action: func(c *cli.Context) error {
+                fmt.Println(password , aid)
+				resp := ap_client.DeleteAgentRequest(aid, password) // TODO: ver como leer bien la contra y el id
+				fmt.Println(resp)
+                
+				return nil
+			},
+		},
+
+		{
+			Name:    "search-agent",
+			Aliases: []string{"S"},
+			Usage:   "Search an Agent",
+			Action: func(c *cli.Context) error {
+                description := c.Args().Get(0) //TODO: agregar un flag booleano para parsear la lista o permitir recibir mas de un string
+				resp, _ := ap_client.SearchAgentRequest(description) //TODO: ver como parsear de consola un CreateAgentMessage
+				fmt.Println(resp)
+				return nil
+			},
+		},
+		// {
+		//     Name: "update-agent",
+		//     Aliases: []string{"U"},
+		//     Usage: "Update an existing agent",
+		//     Action: func (c *cli.Context) error {
+		//         resp := ap_client.UpdateAgentRequest() //TODO: ver como parsear de consola un CreateAgentMessage
+		//         fmt.Println(resp)
+		//         return nil
+		//     },
+
+		// },
+
 	}
 }
 
 func main() {
-    
+
 	info()
 	flags()
 	commnads()
-    sort.Sort(cli.FlagsByName(app.Flags))
-    sort.Sort(cli.CommandsByName(app.Commands))
+	sort.Sort(cli.FlagsByName(app.Flags))
+	sort.Sort(cli.CommandsByName(app.Commands))
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)
