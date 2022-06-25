@@ -132,27 +132,26 @@ func searchAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var responseMessage SearchAgentMessageResponse
-	for _, item := range agents {
-		if item.Description == requestMessage.Description {
-			responseMessage.Message = ""
-			responseMessage.AgentFound = item
-			json.NewEncoder(w).Encode(responseMessage)
-			return
-		}
+	agentsFound := localSearch(requestMessage.Description)
+	if len(agentsFound) > 0 {
+		responseMessage.Message = ""
+		responseMessage.AgentFound = agentsFound
+		json.NewEncoder(w).Encode(responseMessage)
+		return
 	}
 	responseMessage.Message = "There is no agent with that description"
 	json.NewEncoder(w).Encode(responseMessage)
 }
 
 // Local intersections
-func localSearch(query string) *[]Agent {
+func localSearch(query string) []Agent {
 	rankAgent := make([]Agent, 0)
 	for _, agent := range agents {
 		if SearchString(agent.Description, query) != -1 {
 			rankAgent = append(rankAgent, agent)
 		}
 	}
-	return &rankAgent
+	return rankAgent
 }
 
 func NewServerAP(endpoint *Address) *ServerAP {
@@ -202,11 +201,11 @@ func Encoder(agents *[]Agent) {
 // Main function
 func StartServer(ip string, port string) {
 	// Adding agents mock data
-	agents = append(agents, Agent{AID: make([]byte, 1),
+	agents = append(agents, Agent{Name: "Suma", AID: make([]byte, 1),
 		EndPoint: &Address{IP: "127.0.0.1", Port: "8000"},
 		Password: "qwer", Description: "Something1",
 		Documentation: "Some documentation1"})
-	agents = append(agents, Agent{AID: make([]byte, 1),
+	agents = append(agents, Agent{Name: "Resta", AID: make([]byte, 1),
 		EndPoint: &Address{IP: "192.168.0.1", Port: "5000"},
 		Password: "rewq", Description: "Something2",
 		Documentation: "Some documentation2"})

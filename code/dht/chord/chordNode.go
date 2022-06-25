@@ -1,13 +1,11 @@
 package chord
 
 import (
+	"bytes"
+	"fmt"
 	"sync"
+	"time"
 )
-
-type Address struct {
-	IP   string
-	Port string
-}
 
 type NodeInfo struct {
 	NodeID   []byte
@@ -28,10 +26,44 @@ type Node struct {
 	succInfo  *NodeInfo
 	succMutex sync.RWMutex
 
-	// TODO
+	next int
 }
 
-// func newNode
+func NewNode(info NodeInfo, cnf *Config, knowNode *NodeInfo) *Node {
+	node := &Node{
+		Info: info,
+		cnf:  cnf,
+	}
+
+	node.ft = newFingerTable(&info, node.cnf.HashSize)
+
+	node.Join(knowNode)
+
+	RegisterNodeOnRPCServer(node)
+	RunRPCServer(node.Info.EndPoint)
+
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		for {
+			select {
+			case <-ticker.C:
+				node.stabilize()
+			}
+		}
+	}()
+
+	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		for {
+			select {
+			case <-ticker.C:
+				node.checkPredecesor()
+			}
+		}
+	}()
+
+	return node
+}
 
 // Gets a key string and returns the value
 // of hash(key)
@@ -52,25 +84,255 @@ func (node *Node) getHashKey(key string) ([]byte, error) {
 // Join node n to Chord Ring
 // If knowNode is nil then n is the only node
 // In the Ring
-func (n *Node) join(knowNode *Node) error {
+func (n *Node) Join(knowNode *NodeInfo) error {
+	var succ *NodeInfo = &NodeInfo{}
 	if knowNode == nil {
 		// N is the only node therefore
 		// He's his successor
-		n.succMutex.Lock()
-		n.succInfo = &n.Info
-		n.succMutex.Unlock()
+		succ.NodeID = n.Info.NodeID
+		succ.EndPoint = n.Info.EndPoint
+	} else {
+		// There is al least one node on the Ring
+		var err error
+		succ, err = n.GetSuccessorOfKey(knowNode.EndPoint, n.Info.NodeID)
+		if err != nil {
+			fmt.Println(err.Error())
+			return nil
+		}
+	}
+	n.setSuccessor(succ)
 
+	return nil
+}
+
+// Node privete methods
+func (n *Node) findSuccessorOfKey(key []byte) *NodeInfo {
+
+	current := n.Info
+	succ := n.getSuccessor()
+
+	if betweenRightInlcude(current.NodeID, succ.NodeID, key) {
+		return succ
+	}
+
+	cpn := n.closestPredecedingNode(key)
+
+	if bytes.Equal(n.Info.NodeID, cpn.NodeID) {
+		n.succMutex.RLock()
+		defer n.succMutex.RUnlock()
+		return n.succInfo
+	}
+
+	succOfKey, err := n.GetSuccessorOfKey(cpn.EndPoint, key)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil
+	}
+	return succOfKey
+}
+
+func (n *Node) closestPredecedingNode(key []byte) *NodeInfo {
+	n.ftMutex.RLock()
+	defer n.ftMutex.RUnlock()
+
+	current := n.Info
+
+	for i := len(n.ft.Table) - 1; i >= 0; i-- {
+		ftI := n.ft.Table[i]
+
+		if ftI == nil || ftI.SuccNode == nil {
+			continue
+		}
+		if between(current.NodeID, key, ftI.ID) {
+			var cpn *NodeInfo = &NodeInfo{}
+			cpn.NodeID = ftI.SuccNode.NodeID
+			cpn.EndPoint = ftI.SuccNode.EndPoint
+			return cpn
+		}
+	}
+
+	return &current
+}
+
+// get successor of n
+func (n *Node) getSuccessor() *NodeInfo {
+	var succ *NodeInfo = &NodeInfo{}
+
+	n.succMutex.RLock()
+	defer n.succMutex.RUnlock()
+
+	if n.succInfo == nil {
 		return nil
 	}
 
-	// There is al least one node on the Ring
-	
+	succ.NodeID = n.succInfo.NodeID
+	succ.EndPoint = n.succInfo.EndPoint
+
+	return succ
 }
 
-// func (n *Node) Find(key string) (*Node, error) {}
+// get predecessor of n
+func (n *Node) getPredecessor() *NodeInfo {
+	var pred *NodeInfo = &NodeInfo{}
 
-// func (n *Node) Get(key string) ([]bytes, error) {}
+	n.predMutex.RLock()
+	defer n.predMutex.RUnlock()
 
-// func (n *Node) Set(key, value string) error {}
+	if n.predInfo == nil {
+		return nil
+	}
 
-// func (n *Node) Delete(key string) error {}
+	pred.NodeID = n.predInfo.NodeID
+	pred.EndPoint = n.predInfo.EndPoint
+
+	return pred
+}
+
+// set successor of n to succ
+func (n *Node) setSuccessor(succ *NodeInfo) {
+	n.succMutex.Lock()
+	defer n.succMutex.Unlock()
+
+	if succ == nil {
+		n.succInfo = nil
+		return
+	}
+
+	n.succInfo = &NodeInfo{NodeID: succ.NodeID, EndPoint: succ.EndPoint}
+}
+
+// set predecessor of n to pred
+func (n *Node) setPredecessor(pred *NodeInfo) {
+	n.predMutex.Lock()
+	defer n.predMutex.Unlock()
+
+	if pred == nil {
+		n.predInfo = nil
+		return
+	}
+
+	n.predInfo = &NodeInfo{NodeID: pred.NodeID, EndPoint: pred.EndPoint}
+}
+
+//
+func (n *Node) setPosFT(pos int, node NodeInfo) {
+	n.ftMutex.Lock()
+	defer n.ftMutex.Unlock()
+
+	n.ft.Table[pos].SuccNode = &node
+}
+
+// Stabilize
+func (n *Node) stabilize() {
+	/*
+		fmt.Println("succ:", n.getSuccessor())
+		fmt.Println("pred:", n.getPredecessor())
+		fmt.Println()
+	*/
+	succ := n.getSuccessor()
+
+	if succ == nil {
+		return
+	}
+
+	predOfSucc, err := n.GetPredecessorOf(succ.EndPoint)
+	if err != nil {
+		return
+	}
+
+	if predOfSucc == nil {
+		n.Notify(succ.EndPoint)
+		return
+	}
+
+	if between(n.Info.NodeID, succ.NodeID, predOfSucc.NodeID) {
+		n.setSuccessor(predOfSucc)
+	}
+	newSucc := n.getSuccessor()
+	n.Notify(newSucc.EndPoint)
+}
+
+// Notify
+func (n *Node) notify(newPredecessor *NodeInfo) {
+	pred := n.getPredecessor()
+
+	if pred == nil || between(pred.NodeID, n.Info.NodeID, newPredecessor.NodeID) {
+		n.setPredecessor(newPredecessor)
+		// falta transferir llaves
+	}
+}
+
+// Check predecessor
+func (n *Node) checkPredecesor() {
+	pred := n.getPredecessor()
+
+	if pred == nil {
+		return
+	}
+
+	if !n.Ping(pred.EndPoint) {
+		n.setPredecessor(nil)
+	}
+}
+
+// Fix fingers
+func (n *Node) fixFingers() {
+	n.next += 1 % n.cnf.HashSize
+
+	key := calculateFingerEntryID(n.Info.NodeID, n.next, n.cnf.HashSize)
+	nodeInfo := n.findSuccessorOfKey(key)
+	var node NodeInfo = NodeInfo{NodeID: nodeInfo.NodeID, EndPoint: nodeInfo.EndPoint}
+	n.setPosFT(n.next, node)
+}
+
+// Comunication methods
+
+// GetSuccessor -> Comunication interface implementation
+func (n *Node) GetSuccessorOf(addr Address) (*NodeInfo, error) {
+	nodeInfo, err := getSuccessorOf(addr)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, err
+	}
+	return nodeInfo, err
+}
+
+// Ask node at address addr for the successor of key
+func (n *Node) GetSuccessorOfKey(addr Address, key []byte) (*NodeInfo, error) {
+	nodeInfo, err := getSuccessorOfKey(addr, key)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, err
+	}
+	return nodeInfo, nil
+}
+
+// Get the predecessor of nodeInfo
+func (n *Node) GetPredecessorOf(addr Address) (*NodeInfo, error) {
+	nodeInfo, err := getPredecessorOf(addr)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, err
+	}
+	return nodeInfo, err
+}
+
+// Notify the successor of n that n exist
+func (n *Node) Notify(addr Address) error {
+	var info NodeInfo = NodeInfo{}
+	info = n.Info
+	err := notifyNode(addr, &info)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	return nil
+}
+
+// Make ping to a node
+func (n *Node) Ping(addr Address) bool {
+	err := ping(addr)
+	if err != nil {
+		return false
+	}
+	return true
+}

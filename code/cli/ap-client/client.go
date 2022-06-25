@@ -19,7 +19,7 @@ func setURL(newURL string) {
 }
 
 func LoadConfig() {
-	readFile, err := os.Open("ap_client/config.txt")
+	readFile, err := os.Open("ap-client/config.cfg")
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -32,7 +32,7 @@ func LoadConfig() {
 	}
 	readFile.Close()
 	for _, line := range lines {
-		splitLine := strings.Split(line, " -> ")
+		splitLine := strings.Split(line, " ")
 		if splitLine[0] == "url" {
 			setURL(splitLine[1])
 		}
@@ -130,7 +130,7 @@ func DeleteAgentRequest(aid string, password string) (resp string) {
 }
 
 // Search an Agent
-func SearchAgentRequest(description string) (resp string, agent Agent) {
+func SearchAgentRequest(description string) (resp string, agent []Agent) {
 	client := http.Client{Timeout: 10 * time.Second}
 	var requestMessage SearchAgentMessage = SearchAgentMessage{
 		Description: description,
@@ -138,43 +138,43 @@ func SearchAgentRequest(description string) (resp string, agent Agent) {
 	jsonRequestMessage, err := json.Marshal(requestMessage)
 	if err != nil {
 		log.Fatal(err)
-		return err.Error(), Agent{}
+		return err.Error(), make([]Agent, 0)
 	}
 	request, err := http.NewRequest(http.MethodGet, url+"/search",
 		bytes.NewBuffer(jsonRequestMessage))
 	if err != nil {
 		log.Fatal(err)
-		return err.Error(), Agent{}
+		return err.Error(), make([]Agent, 0)
 	}
 	request.Header.Add("Accept", "application/json")
 	response, err := client.Do(request)
 	if err != nil {
 		log.Fatal(err)
-		return err.Error(), Agent{}
+		return err.Error(), make([]Agent, 0)
 	}
 	defer response.Body.Close()
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		log.Fatal(err)
-		return err.Error(), Agent{}
+		return err.Error(), make([]Agent, 0)
 	}
 	var responseMessage SearchAgentMessageResponse
 	err = json.Unmarshal(body, &responseMessage)
 	if err != nil {
 		log.Fatal(err)
-		return err.Error(), Agent{}
+		return err.Error(), make([]Agent, 0)
 	}
 	if len(responseMessage.Message) > 0 {
-		return responseMessage.Message, Agent{}
+		return responseMessage.Message, make([]Agent, 0)
 	}
-	return "", responseMessage.AgentFound
+	return responseMessage.Message, responseMessage.AgentsFound
 }
 
-func UpdateAgentRequest(aid, password, newIP, newPort,
+func UpdateAgentRequest(name, password, newIP, newPort,
 	newPassword, newDescription, newDocumentation string) (resp string) {
 	client := http.Client{Timeout: 10 * time.Second}
 	var requestMessage UpdateAgentMessage = UpdateAgentMessage{
-		AID:              aid,
+		Name:             name,
 		Password:         password,
 		NewIP:            newIP,
 		NewPort:          newPort,
@@ -189,6 +189,10 @@ func UpdateAgentRequest(aid, password, newIP, newPort,
 	}
 	request, err := http.NewRequest(http.MethodPut, url+"/update",
 		bytes.NewBuffer(jsonRequestMessage))
+	if err != nil {
+		log.Fatal(err)
+		return err.Error()
+	}
 	request.Header.Add("Accept", "application/json")
 	response, err := client.Do(request)
 	if err != nil {
@@ -209,3 +213,9 @@ func UpdateAgentRequest(aid, password, newIP, newPort,
 	}
 	return responseMessage.Message
 }
+
+func updARIP()            {}
+func updARPort()          {}
+func updARName()          {}
+func updARDescription()   {}
+func updARDocumentation() {}

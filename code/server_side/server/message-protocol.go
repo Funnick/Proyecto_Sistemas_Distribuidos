@@ -25,8 +25,8 @@ type SearchAgentMessage struct {
 }
 
 type SearchAgentMessageResponse struct {
-	AgentFound Agent  `json:"agent"`
-	Message    string `json:"message"`
+	AgentFound []Agent `json:"agent"`
+	Message    string  `json:"message"`
 }
 
 type UpdateAgentMessage struct {
