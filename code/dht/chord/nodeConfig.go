@@ -11,9 +11,9 @@ type Config struct {
 }
 
 func DefaultConfig() *Config {
-	defcng := &Config{
+	defCng := &Config{
 		Hash: sha1.New,
 	}
-	defcng.HashSize = defcng.Hash().Size() * 8
-	return defcng
+	defCng.HashSize = defCng.Hash().Size() * 8
+	return defCng
 }
