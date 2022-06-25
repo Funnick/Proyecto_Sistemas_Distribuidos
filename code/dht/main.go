@@ -1,16 +1,27 @@
 package main
 
 import (
-	"crypto/sha1"
-	"fmt"
+	"dht/chord"
+	"os"
 )
 
 func main() {
-	h := sha1.New()
-	s := "AgentPepe"
-	h.Write([]byte(s))
-	val := h.Sum(nil)
-	fmt.Println(val)
-	fmt.Println(len(val))
-	fmt.Println(h.Size())
+	ip := os.Args[1]
+	port := os.Args[2]
+	ipSucc := os.Args[3]
+	portSucc := os.Args[4]
+	if os.Args[5] == "1" {
+		chord.JoinTest(ip, port, ipSucc, portSucc)
+	}
+	if os.Args[5] == "2" {
+		chord.SleepTest(ip, port, ipSucc, portSucc)
+	}
+	if os.Args[5] == "3" {
+		chord.StabilizeTest(ip, port, ipSucc, portSucc)
+	}
+	if os.Args[5] == "4" {
+		chord.FireTest(ip, port, ipSucc, portSucc)
+	} else {
+		chord.SelfTest(ip, port, ipSucc, portSucc)
+	}
 }
