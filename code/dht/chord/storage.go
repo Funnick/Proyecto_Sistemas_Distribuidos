@@ -103,22 +103,23 @@ func (db *DataBasePl) Get(key []byte) (string, bool) {
 	return "", false
 }
 
-/*
-func (db *DataBasePl) GetByFun(fun string) (string, bool) {
+func (db *DataBasePl) GetByFun(fun string) ([]string, bool) {
 	rows, err := db.readAll()
 	if err != nil {
-		return "", false
+		return []string{}, false
 	}
 
-
+	data := make([]string, 0)
 	for _, elem := range rows {
-		// kmp
+		if SearchString(elem.Data, fun) != -1 {
+			data = append(data, elem.Data)
+		}
 	}
-
-
-	return "", false
+	if len(data) > 0 {
+		return data, true
+	}
+	return data, false
 }
-*/
 
 func (db *DataBasePl) GetAll() ([]string, bool) {
 	rows, err := db.readAll()
