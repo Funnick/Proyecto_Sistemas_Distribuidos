@@ -26,13 +26,18 @@ type Node struct {
 	succInfo  *NodeInfo
 	succMutex sync.RWMutex
 
+	db      DataBasePlatform
+	dbMutex sync.RWMutex
+
 	next int
 }
 
-func NewNode(info NodeInfo, cnf *Config, knowNode *NodeInfo) *Node {
+func NewNode(info NodeInfo, cnf *Config, knowNode *NodeInfo, dbName string) *Node {
 	node := &Node{
 		Info: info,
 		cnf:  cnf,
+		db:   NewDataBase(dbName),
+		next: 0,
 	}
 
 	node.ft = newFingerTable(&info, node.cnf.HashSize)
