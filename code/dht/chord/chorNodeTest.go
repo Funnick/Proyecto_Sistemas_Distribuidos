@@ -15,7 +15,7 @@ func JoinTest(ip, port, ipSucc, portSucc string) {
 	if ipSucc != "" {
 		i = &NodeInfo{NodeID: val, EndPoint: Address{IP: ipSucc, Port: portSucc}}
 	}
-	n := NewNode(info, DefaultConfig(), i)
+	n := NewNode(info, DefaultConfig(), i, getAddr(info.EndPoint))
 	fmt.Println(n.getSuccessor())
 	fmt.Println(n.getSuccessor())
 	fmt.Println(n.Info.NodeID)
@@ -30,7 +30,7 @@ func SleepTest(ip, port, ipSucc, portSucc string) {
 	if ipSucc != "" {
 		i = &NodeInfo{NodeID: val, EndPoint: Address{IP: ipSucc, Port: portSucc}}
 	}
-	n := NewNode(info, DefaultConfig(), i)
+	n := NewNode(info, DefaultConfig(), i, getAddr(info.EndPoint))
 	fmt.Println(n.Info.EndPoint.IP+":"+n.Info.EndPoint.Port+" succ", n.getSuccessor())
 	fmt.Println(n.Info.EndPoint.IP+":"+n.Info.EndPoint.Port+" pred", n.getPredecessor())
 	time.Sleep(25 * time.Second)
@@ -49,7 +49,7 @@ func StabilizeTest(ip, port, ipSucc, portSucc string) {
 	if ipSucc != "" {
 		i = &NodeInfo{NodeID: val, EndPoint: Address{IP: ipSucc, Port: portSucc}}
 	}
-	n := NewNode(info, DefaultConfig(), i)
+	n := NewNode(info, DefaultConfig(), i, getAddr(info.EndPoint))
 	fmt.Println(n.Info.EndPoint.IP+":"+n.Info.EndPoint.Port+" succ", n.getSuccessor())
 	fmt.Println(n.Info.EndPoint.IP+":"+n.Info.EndPoint.Port+" pred", n.getPredecessor())
 	time.Sleep(15 * time.Second)
@@ -70,7 +70,7 @@ func FireTest(ip, port, ipSucc, portSucc string) {
 	if ipSucc != "" {
 		i = &NodeInfo{NodeID: val, EndPoint: Address{IP: ipSucc, Port: portSucc}}
 	}
-	n = NewNode(info, DefaultConfig(), i)
+	n = NewNode(info, DefaultConfig(), i, getAddr(info.EndPoint))
 	fmt.Println(n.Info.EndPoint.IP+":"+n.Info.EndPoint.Port+" succ", n.getSuccessor())
 	fmt.Println(n.Info.EndPoint.IP+":"+n.Info.EndPoint.Port+" pred", n.getPredecessor())
 	time.Sleep(60 * time.Second)
@@ -88,7 +88,7 @@ func SelfTest(ip, port, ipSucc, portSucc string) {
 	if ipSucc != "" {
 		i = &NodeInfo{NodeID: val, EndPoint: Address{IP: ipSucc, Port: portSucc}}
 	}
-	n = NewNode(info, DefaultConfig(), i)
+	n = NewNode(info, DefaultConfig(), i, getAddr(info.EndPoint))
 	time.Sleep(30 * time.Second)
 	fmt.Println(n.Info.EndPoint.IP+":"+n.Info.EndPoint.Port+" succ", n.getSuccessor())
 	fmt.Println(n.Info.EndPoint.IP+":"+n.Info.EndPoint.Port+" pred", n.getPredecessor())
