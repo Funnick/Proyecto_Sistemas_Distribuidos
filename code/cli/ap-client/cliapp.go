@@ -2,8 +2,10 @@ package ap_client
 
 import (
 	"fmt"
-	"github.com/urfave/cli"
+	"log"
+	"strings"
 
+	"github.com/urfave/cli"
 )
 
 var conf string
@@ -79,9 +81,16 @@ func Commnads() {
 		},
 
 		{
-		    Name: "create-agent",
-		    Aliases: []string{"C"},
-		    Usage: "Create new agent",
+			Name:            "create-agent",
+			Aliases:         []string{"C"},
+			Usage:           "Create new agent",
+			UsageText:       "!234",
+			Description:     "una desc",
+			ArgsUsage:       "kkk",
+			SkipFlagParsing: false,
+			HideHelp:        false,
+			Hidden:          false,
+			HelpName:        "doo!",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "ip",
@@ -115,13 +124,16 @@ func Commnads() {
 				},
 			},
 
-		    Action: func (c *cli.Context) error {
-                fmt.Println(ip, port, password, description, doc)
-		        resp := CreateAgentRequest(ip, port, password, description, doc) 
-		        fmt.Println(resp)
-		        return nil
-		    },
-
+			Action: func(c *cli.Context) error {
+                err_val := create_validation()
+                if err_val  != nil {
+                    return err_val
+                }
+				fmt.Println(ip, port, password, description, doc)
+				resp := CreateAgentRequest(ip, port, password, description, doc)
+				fmt.Println(resp)
+				return nil
+			},
 		},
 		{
 			Name:    "delete-agent",
@@ -143,10 +155,15 @@ func Commnads() {
 			},
 
 			Action: func(c *cli.Context) error {
-                fmt.Println(password , aid)
+                err_val := delete_validation()
+                if err_val != nil{
+                    return err_val
+                }
+
+				fmt.Println(password, aid)
 				resp := DeleteAgentRequest(aid, password)
 				fmt.Println(resp)
-                
+
 				return nil
 			},
 		},
@@ -156,17 +173,22 @@ func Commnads() {
 			Aliases: []string{"S"},
 			Usage:   "Search an Agent",
 			Action: func(c *cli.Context) error {
-                description := c.Args().Get(0) //TODO: agregar un flag booleano o un StringSliceFlag para parsear la lista o permitir recibir mas de un string
-				resp, _ := SearchAgentRequest(description)
-				fmt.Println(resp)
-				return nil
+				if c.NArg() > 0 {
+					description := strings.Join(c.Args(), " ")
+					log.Printf(description)
+					resp, _ := SearchAgentRequest(description)
+					fmt.Println(resp)
+					return nil
+				}
+				fmt.Println("Please insert a valid string to search")
+				return cli.NewExitError("Empty search string", 88)
 			},
 		},
 
 		{
-		    Name: "update-agent",
-		    Aliases: []string{"U"},
-		    Usage: "Update an existing agent",
+			Name:    "update-agent",
+			Aliases: []string{"U"},
+			Usage:   "Update an existing agent",
 
 			Flags: []cli.Flag{
 				&cli.StringFlag{
@@ -174,6 +196,12 @@ func Commnads() {
 					Value:       "",
 					Usage:       "New Agent name",
 					Destination: &name,
+				},
+				&cli.StringFlag{
+					Name:        "password",
+					Value:       "",
+					Usage:       "Password that gives access to an agent",
+					Destination: &password,
 				},
 				&cli.StringFlag{
 					Name:        "ip",
@@ -207,14 +235,70 @@ func Commnads() {
 				},
 			},
 
-		    Action: func (c *cli.Context) error {
-                fmt.Println(name, password, ip, port, newpassword, description, doc)
-		        resp := UpdateAgentRequest(name, password, ip, port, newpassword, description, doc) 
-		        fmt.Println(resp)
-		        return nil
-		    },
-
+			Action: func(c *cli.Context) error {
+				fmt.Println(name, password, ip, port, newpassword, description, doc)
+				err_valid := update_validation()
+				if err_valid != nil {
+					return err_valid
+				}
+				resp := UpdateAgentRequest(name, password, ip, port, newpassword, description, doc)
+				fmt.Println(resp)
+				return nil
+			},
 		},
-
 	}
+}
+
+func update_validation() error {
+	if name == "" {
+		return cli.NewExitError("name error", 2)
+	}
+	if password == "" {
+		return cli.NewExitError("Insert a correct Password", 2)
+	}
+	if ip == "" {
+		return cli.NewExitError("Ip error", 2)
+	}
+	if port == "" {
+		return cli.NewExitError("Port error", 2)
+	}
+	if newpassword == "" {
+		return cli.NewExitError("New Password error", 2)
+	}
+	if description == "" {
+		return cli.NewExitError("Description error", 2)
+	}
+	if doc == "" {
+		return cli.NewExitError("Doc error", 2)
+	}
+	return nil
+}
+
+func create_validation() error {
+	if ip == "" {
+		return cli.NewExitError("Ip error", 2)
+	}
+	if port == "" {
+		return cli.NewExitError("Port error", 2)
+	}
+	if password == "" {
+		return cli.NewExitError("Password error", 2)
+	}
+	if description == "" {
+		return cli.NewExitError("Description error", 2)
+	}
+	if doc == "" {
+		return cli.NewExitError("Doc error", 2)
+	}
+	return nil
+}
+
+func delete_validation() error {
+	if aid == "" {
+		return cli.NewExitError("Id error", 2)
+	}
+	if password == "" {
+		return cli.NewExitError("Password error", 2)
+	}
+	return nil
 }
