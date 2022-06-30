@@ -1,138 +1,133 @@
 package server
 
 import (
-	"bytes"
-	"crypto/sha1"
-	"encoding/gob"
 	"encoding/json"
-	"log"
+	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/gorilla/mux"
 )
 
-type ServerAP struct {
-	endpoint *Address
+type Platform struct {
+	endpoint Address
 	router   mux.Router
+	node     DBChord
+}
+
+func NewPlatform(ip, port string) *Platform {
+	endpoint := Address{IP: ip, Port: port}
+	pl := &Platform{
+		endpoint: endpoint,
+		router:   *mux.NewRouter(),
+		node:     nil,
+	}
+
+	pl.router.HandleFunc("/ap/agents", pl.GetAgents).Methods(http.MethodGet)
+	pl.router.HandleFunc("/ap/create", pl.CreateNewAgent).Methods(http.MethodPost)
+	pl.router.HandleFunc("/ap/delete", pl.DeleteAgent).Methods(http.MethodDelete)
+	pl.router.HandleFunc("/ap/search", pl.SearchAgent).Methods(http.MethodGet)
+	pl.router.HandleFunc("/ap/update", pl.UpdateAgent).Methods(http.MethodPut)
+
+	return pl
 }
 
 // Mocket Agents
 var agents []Agent
 
-// Handlers Functions
-
 // Get all agents
-func getAgents(w http.ResponseWriter, r *http.Request) {
+func (pl *Platform) GetAgents(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(agents)
 }
 
 // Create an agent
-func createNewAgent(w http.ResponseWriter, r *http.Request) {
+func (pl *Platform) CreateNewAgent(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var requestMessage CreateAgentMessage
 	err := json.NewDecoder(r.Body).Decode(&requestMessage)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err.Error())
 		return
 	}
 	var endpoint Address = Address{IP: requestMessage.IP, Port: requestMessage.Port}
 
-	hash := sha1.New()
-	hash.Write([]byte(requestMessage.IP + requestMessage.Port + requestMessage.Name))
-	val := hash.Sum(nil)
-
-	var agent Agent = Agent{Name: requestMessage.Name, AID: val, EndPoint: &endpoint,
+	var agent Agent = Agent{Name: requestMessage.Name, EndPoint: &endpoint,
 		Password: requestMessage.Password, Description: requestMessage.Description,
 		Documentation: requestMessage.Documentation}
-	agents = append(agents, agent)
+
+	err = pl.node.Set(agent)
+	if err != nil {
+		fmt.Println(err.Error())
+		responseMessage := ResponseMessage{Message: err.Error()}
+		json.NewEncoder(w).Encode(responseMessage)
+		return
+	}
 	responseMessage := ResponseMessage{Message: "Agent create successfully"}
 	json.NewEncoder(w).Encode(responseMessage)
 }
 
 // Delete an agent
-func deleteAgent(w http.ResponseWriter, r *http.Request) {
+func (pl *Platform) DeleteAgent(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var requestMessage DeleteAgentMessage
 	err := json.NewDecoder(r.Body).Decode(&requestMessage)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err.Error())
 		return
 	}
 	var responseMessage ResponseMessage
-	for i, item := range agents {
-
-		hash := sha1.New()
-		hash.Write([]byte(requestMessage.IP + requestMessage.Port + requestMessage.Name))
-		val := hash.Sum(nil)
-
-		if bytes.Equal(item.AID, val) {
-			if item.Password == requestMessage.Password {
-				agents = append(agents[:i], agents[i+1:]...)
-				responseMessage.Message = "Agent remove successfully"
-			} else {
-				responseMessage.Message = "Wrong password"
-			}
-			json.NewEncoder(w).Encode(responseMessage)
-			return
-		}
+	err = pl.node.Delete("", "")
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		responseMessage.Message = "Agent remove successfully"
+		json.NewEncoder(w).Encode(responseMessage)
+		return
 	}
-	responseMessage.Message = "There is no agent with AID:" + "" // change requestMessage.AID
+	// responseMessage.Message = "Wrong password"
+
+	responseMessage.Message = "There is no agent with that name:" + requestMessage.Name
 	json.NewEncoder(w).Encode(responseMessage)
 }
 
 // Update an agent
 // TODO
-func updateAgent(w http.ResponseWriter, r *http.Request) {
+func (pl *Platform) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var requestMessage UpdateAgentMessage
 	err := json.NewDecoder(r.Body).Decode(&requestMessage)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err.Error())
 		return
 	}
 	var responseMessage ResponseMessage
-	for i, item := range agents {
-		hash := sha1.New()
-		hash.Write([]byte(requestMessage.IP + requestMessage.Port + requestMessage.Name))
-		val := hash.Sum(nil)
-		if bytes.Equal(item.AID, val) {
-			if item.Password == requestMessage.Password {
-				var endpoint Address = Address{IP: requestMessage.NewIP, Port: requestMessage.NewPort}
-
-				hash.Reset()
-				hash.Write([]byte(requestMessage.NewIP + requestMessage.NewPort + requestMessage.NewName))
-				newVal := hash.Sum(nil)
-
-				var agent Agent = Agent{Name: requestMessage.NewName, AID: newVal, EndPoint: &endpoint,
-					Password: requestMessage.NewPassword, Description: requestMessage.NewDescription,
-					Documentation: requestMessage.NewDocumentation}
-
-				agents[i] = agent
-				responseMessage.Message = "Agent updated successfully"
-			} else {
-				responseMessage.Message = "Wrong password"
-			}
-			json.NewEncoder(w).Encode(responseMessage)
-			return
-		}
+	agent, err := pl.node.GetByName(requestMessage.Name)
+	if err != nil {
+		fmt.Println(err.Error())
 	}
-	responseMessage.Message = "There is no agent with that ID"
+	err = pl.node.Update("", "", string(agent))
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	responseMessage.Message = "Agent updated successfully"
+	//responseMessage.Message = "Wrong password"
 	json.NewEncoder(w).Encode(responseMessage)
 }
 
 // Search an agent
-func searchAgent(w http.ResponseWriter, r *http.Request) {
+func (pl *Platform) SearchAgent(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var requestMessage SearchAgentMessage
 	err := json.NewDecoder(r.Body).Decode(&requestMessage)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err.Error())
 		return
 	}
 	var responseMessage SearchAgentMessageResponse
-	agentsFound := localSearch(requestMessage.Description)
+	agentsFound, err := pl.node.GetByFunction(requestMessage.Description)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 	if len(agentsFound) > 0 {
 		responseMessage.Message = ""
 		responseMessage.AgentFound = agentsFound
@@ -143,86 +138,9 @@ func searchAgent(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(responseMessage)
 }
 
-// Local intersections
-func localSearch(query string) []Agent {
-	rankAgent := make([]Agent, 0)
-	for _, agent := range agents {
-		if SearchString(agent.Description, query) != -1 {
-			rankAgent = append(rankAgent, agent)
-		}
-	}
-	return rankAgent
-}
-
-func NewServerAP(endpoint *Address) *ServerAP {
-	newServer := &ServerAP{endpoint: endpoint, router: *mux.NewRouter()}
-
-	newServer.router.HandleFunc("/ap/agents", getAgents).Methods(http.MethodGet)
-	newServer.router.HandleFunc("/ap/create", createNewAgent).Methods(http.MethodPost)
-	newServer.router.HandleFunc("/ap/delete", deleteAgent).Methods(http.MethodDelete)
-	newServer.router.HandleFunc("/ap/search", searchAgent).Methods(http.MethodGet)
-	newServer.router.HandleFunc("/ap/update", updateAgent).Methods(http.MethodPut)
-
-	return newServer
-}
-
-func (s *ServerAP) Run() {
-	log.Fatal(http.ListenAndServe(s.endpoint.IP+":"+s.endpoint.Port, &s.router))
-}
-
-// Gobinary decoder
-func Decoder(file string) *[]Agent {
-	f, err := os.Open(file)
+func (pl *Platform) Run() {
+	err := http.ListenAndServe(pl.endpoint.IP+":"+pl.endpoint.Port, &pl.router)
 	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-	var agents []Agent
-	dec := gob.NewDecoder(f)
-	if err := dec.Decode(&agents); err != nil {
-		log.Fatal(err)
-	}
-	return &agents
-}
-
-// Gobinary encoder
-func Encoder(agents *[]Agent) {
-	f, err := os.Create("agents.gob")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-	enc := gob.NewEncoder(f)
-	if err := enc.Encode(agents); err != nil {
-		log.Fatal(err)
-	}
-}
-
-// Main function
-func StartServer(ip string, port string) {
-	// Adding agents mock data
-	agents = append(agents, Agent{Name: "Suma", AID: make([]byte, 1),
-		EndPoint: &Address{IP: "127.0.0.1", Port: "8000"},
-		Password: "qwer", Description: "Something1",
-		Documentation: "Some documentation1"})
-	agents = append(agents, Agent{Name: "Resta", AID: make([]byte, 1),
-		EndPoint: &Address{IP: "192.168.0.1", Port: "5000"},
-		Password: "rewq", Description: "Something2",
-		Documentation: "Some documentation2"})
-
-	// Init Router
-	router := mux.NewRouter()
-
-	// Route Handlers / EndPoints
-	router.HandleFunc("/ap/agents", getAgents).Methods(http.MethodGet)
-	router.HandleFunc("/ap/create", createNewAgent).Methods(http.MethodPost)
-	router.HandleFunc("/ap/delete", deleteAgent).Methods(http.MethodDelete)
-	router.HandleFunc("/ap/search", searchAgent).Methods(http.MethodGet)
-	router.HandleFunc("/ap/update", updateAgent).Methods(http.MethodPut)
-
-	// Init Server
-	err := http.ListenAndServe(ip+":"+port, router)
-	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err.Error())
 	}
 }
