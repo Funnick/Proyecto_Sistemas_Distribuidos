@@ -89,7 +89,10 @@ func SelfTest(ip, port, ipSucc, portSucc string) {
 		i = &NodeInfo{NodeID: val, EndPoint: Address{IP: ipSucc, Port: portSucc}}
 	}
 	n = NewNode(info, DefaultConfig(), i, getAddr(info.EndPoint))
+	fmt.Println(n.Info.EndPoint.IP+":"+n.Info.EndPoint.Port+" succ", n.getSuccessor())
+	fmt.Println(n.Info.EndPoint.IP+":"+n.Info.EndPoint.Port+" pred", n.getPredecessor())
 	time.Sleep(30 * time.Second)
 	fmt.Println(n.Info.EndPoint.IP+":"+n.Info.EndPoint.Port+" succ", n.getSuccessor())
 	fmt.Println(n.Info.EndPoint.IP+":"+n.Info.EndPoint.Port+" pred", n.getPredecessor())
+	n.Stop()
 }
