@@ -8,12 +8,12 @@ import (
 )
 
 type DataBasePlatform interface {
-	Get([]byte) (string, bool)
-	//GetByFun(string) (string, bool)
-	GetAll() ([]string, bool)
-	Set([]byte, string) bool
-	Update([]byte, string) bool
-	Delete([]byte) bool
+	GetByName([]byte) (string, error)
+	GetByFun(string) ([]string, error)
+	GetAll() ([]string, error)
+	Set([]byte, string) error
+	Update([]byte, string) error
+	Delete([]byte) error
 }
 
 // Base de Datos para la plataforma
@@ -88,42 +88,43 @@ func (db *DataBasePl) writeAll(rows []RowData) error {
 	return nil
 }
 
-func (db *DataBasePl) Get(key []byte) (string, bool) {
+func (db *DataBasePl) GetByName(key []byte) (string, error) {
 	rows, err := db.readAll()
 	if err != nil {
-		return "", false
+		return "", err
 	}
 
 	for _, elem := range rows {
 		if bytes.Equal(elem.Key, key) {
-			return elem.Data, true
+			return elem.Data, nil
 		}
 	}
 
-	return "", false
+	return "", StorageError{message: "There is no agent with that name"}
 }
 
-/*
-func (db *DataBasePl) GetByFun(fun string) (string, bool) {
+func (db *DataBasePl) GetByFun(fun string) ([]string, error) {
 	rows, err := db.readAll()
 	if err != nil {
-		return "", false
+		return []string{}, err
 	}
 
-
+	data := make([]string, 0)
 	for _, elem := range rows {
-		// kmp
+		if SearchString(elem.Data, fun) != -1 {
+			data = append(data, elem.Data)
+		}
 	}
-
-
-	return "", false
+	if len(data) > 0 {
+		return data, StorageError{message: "There is no agents with that function"}
+	}
+	return data, nil
 }
-*/
 
-func (db *DataBasePl) GetAll() ([]string, bool) {
+func (db *DataBasePl) GetAll() ([]string, error) {
 	rows, err := db.readAll()
 	if err != nil {
-		return nil, false
+		return nil, err
 	}
 
 	var data []string = make([]string, len(rows))
@@ -132,34 +133,34 @@ func (db *DataBasePl) GetAll() ([]string, bool) {
 		data[i] = elem.Data
 	}
 
-	return data, true
+	return data, nil
 }
 
-func (db *DataBasePl) Set(vKey []byte, vData string) bool {
+func (db *DataBasePl) Set(vKey []byte, vData string) error {
 	rows, err := db.readAll()
 	if err != nil {
-		return false
+		return err
 	}
 
 	for _, elem := range rows {
 		if bytes.Equal(elem.Key, vKey) {
-			return false
+			return StorageError{message: "There is another agent with that name"}
 		}
 	}
 
 	var newRows []RowData = append(rows, RowData{Key: vKey, Data: vData})
 	err = db.writeAll(newRows)
 	if err != nil {
-		return false
+		return err
 	}
 
-	return true
+	return nil
 }
 
-func (db *DataBasePl) Update(vKey []byte, vData string) bool {
+func (db *DataBasePl) Update(vKey []byte, vData string) error {
 	rows, err := db.readAll()
 	if err != nil {
-		return false
+		return err
 	}
 
 	for i, elem := range rows {
@@ -169,20 +170,20 @@ func (db *DataBasePl) Update(vKey []byte, vData string) bool {
 			newRows = append(newRows, RowData{Key: vKey, Data: vData})
 			err = db.writeAll(newRows)
 			if err != nil {
-				return false
+				return err
 			}
 
-			return true
+			return nil
 		}
 	}
 
-	return false
+	return StorageError{"There is no agent with that name"}
 }
 
-func (db *DataBasePl) Delete(vKey []byte) bool {
+func (db *DataBasePl) Delete(vKey []byte) error {
 	rows, err := db.readAll()
 	if err != nil {
-		return false
+		return err
 	}
 
 	for i, elem := range rows {
@@ -190,12 +191,21 @@ func (db *DataBasePl) Delete(vKey []byte) bool {
 			newRows := append(rows[:i], rows[i+1:]...)
 			err = db.writeAll(newRows)
 			if err != nil {
-				return false
+				return err
 			}
 
-			return true
+			return nil
 		}
 	}
 
-	return false
+	return StorageError{"There is no agent with that name"}
+}
+
+// Errors
+type StorageError struct {
+	message string
+}
+
+func (se StorageError) Error() string {
+	return se.message
 }

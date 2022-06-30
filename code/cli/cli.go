@@ -1,12 +1,16 @@
 package main
 
 import (
-	"agent_platform_client/ap_client"
+	client "agent_platform_client/ap-client"
 	"fmt"
 )
 
 func main() {
-	ap_client.LoadConfig()
-	_, l := ap_client.GetAgentsRequest()
+	client.LoadConfig()
+	_, l := client.GetAgentsRequest()
+	r, k := client.SearchAgentRequest("000")
 	fmt.Println(l)
+	fmt.Println(r, k)
+
+	//zz := ap_client.UpdateAgentRequest("Suma", "qwer")
 }

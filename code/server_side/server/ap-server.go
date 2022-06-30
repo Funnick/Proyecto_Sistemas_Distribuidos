@@ -1,9 +1,13 @@
 package server
 
 import (
+	"bytes"
+	"crypto/sha1"
+	"encoding/gob"
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 )
@@ -34,7 +38,12 @@ func createNewAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var endpoint Address = Address{IP: requestMessage.IP, Port: requestMessage.Port}
-	var agent Agent = Agent{AID: "4", EndPoint: &endpoint,
+
+	hash := sha1.New()
+	hash.Write([]byte(requestMessage.IP + requestMessage.Port + requestMessage.Name))
+	val := hash.Sum(nil)
+
+	var agent Agent = Agent{Name: requestMessage.Name, AID: val, EndPoint: &endpoint,
 		Password: requestMessage.Password, Description: requestMessage.Description,
 		Documentation: requestMessage.Documentation}
 	agents = append(agents, agent)
@@ -53,7 +62,12 @@ func deleteAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	var responseMessage ResponseMessage
 	for i, item := range agents {
-		if item.AID == requestMessage.AID {
+
+		hash := sha1.New()
+		hash.Write([]byte(requestMessage.IP + requestMessage.Port + requestMessage.Name))
+		val := hash.Sum(nil)
+
+		if bytes.Equal(item.AID, val) {
 			if item.Password == requestMessage.Password {
 				agents = append(agents[:i], agents[i+1:]...)
 				responseMessage.Message = "Agent remove successfully"
@@ -64,7 +78,7 @@ func deleteAgent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	responseMessage.Message = "There is no agent with AID:" + requestMessage.AID
+	responseMessage.Message = "There is no agent with AID:" + "" // change requestMessage.AID
 	json.NewEncoder(w).Encode(responseMessage)
 }
 
@@ -80,12 +94,21 @@ func updateAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	var responseMessage ResponseMessage
 	for i, item := range agents {
-		if item.AID == requestMessage.AID {
+		hash := sha1.New()
+		hash.Write([]byte(requestMessage.IP + requestMessage.Port + requestMessage.Name))
+		val := hash.Sum(nil)
+		if bytes.Equal(item.AID, val) {
 			if item.Password == requestMessage.Password {
 				var endpoint Address = Address{IP: requestMessage.NewIP, Port: requestMessage.NewPort}
-				var agent Agent = Agent{AID: requestMessage.AID, EndPoint: &endpoint,
+
+				hash.Reset()
+				hash.Write([]byte(requestMessage.NewIP + requestMessage.NewPort + requestMessage.NewName))
+				newVal := hash.Sum(nil)
+
+				var agent Agent = Agent{Name: requestMessage.NewName, AID: newVal, EndPoint: &endpoint,
 					Password: requestMessage.NewPassword, Description: requestMessage.NewDescription,
 					Documentation: requestMessage.NewDocumentation}
+
 				agents[i] = agent
 				responseMessage.Message = "Agent updated successfully"
 			} else {
@@ -109,16 +132,26 @@ func searchAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var responseMessage SearchAgentMessageResponse
-	for _, item := range agents {
-		if item.Description == requestMessage.Description {
-			responseMessage.Message = ""
-			responseMessage.AgentFound = item
-			json.NewEncoder(w).Encode(responseMessage)
-			return
-		}
+	agentsFound := localSearch(requestMessage.Description)
+	if len(agentsFound) > 0 {
+		responseMessage.Message = ""
+		responseMessage.AgentFound = agentsFound
+		json.NewEncoder(w).Encode(responseMessage)
+		return
 	}
 	responseMessage.Message = "There is no agent with that description"
 	json.NewEncoder(w).Encode(responseMessage)
+}
+
+// Local intersections
+func localSearch(query string) []Agent {
+	rankAgent := make([]Agent, 0)
+	for _, agent := range agents {
+		if SearchString(agent.Description, query) != -1 {
+			rankAgent = append(rankAgent, agent)
+		}
+	}
+	return rankAgent
 }
 
 func NewServerAP(endpoint *Address) *ServerAP {
@@ -137,14 +170,42 @@ func (s *ServerAP) Run() {
 	log.Fatal(http.ListenAndServe(s.endpoint.IP+":"+s.endpoint.Port, &s.router))
 }
 
+// Gobinary decoder
+func Decoder(file string) *[]Agent {
+	f, err := os.Open(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+	var agents []Agent
+	dec := gob.NewDecoder(f)
+	if err := dec.Decode(&agents); err != nil {
+		log.Fatal(err)
+	}
+	return &agents
+}
+
+// Gobinary encoder
+func Encoder(agents *[]Agent) {
+	f, err := os.Create("agents.gob")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+	enc := gob.NewEncoder(f)
+	if err := enc.Encode(agents); err != nil {
+		log.Fatal(err)
+	}
+}
+
 // Main function
 func StartServer(ip string, port string) {
 	// Adding agents mock data
-	agents = append(agents, Agent{AID: "1",
+	agents = append(agents, Agent{Name: "Suma", AID: make([]byte, 1),
 		EndPoint: &Address{IP: "127.0.0.1", Port: "8000"},
 		Password: "qwer", Description: "Something1",
 		Documentation: "Some documentation1"})
-	agents = append(agents, Agent{AID: "2",
+	agents = append(agents, Agent{Name: "Resta", AID: make([]byte, 1),
 		EndPoint: &Address{IP: "192.168.0.1", Port: "5000"},
 		Password: "rewq", Description: "Something2",
 		Documentation: "Some documentation2"})

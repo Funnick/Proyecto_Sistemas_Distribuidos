@@ -9,6 +9,10 @@ type Address struct {
 	Port string
 }
 
+type Agent struct {
+	Name string
+}
+
 // Covert an address into a string
 func getAddr(addr Address) string {
 	return addr.IP + ":" + addr.Port

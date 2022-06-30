@@ -22,12 +22,12 @@ type SearchAgentMessage struct {
 }
 
 type SearchAgentMessageResponse struct {
-	AgentFound Agent  `json:"agent"`
-	Message    string `json:"message"`
+	AgentsFound []Agent `json:"agent"`
+	Message     string  `json:"message"`
 }
 
 type UpdateAgentMessage struct {
-	AID              string `json:"aid"`
+	Name             string `json:"name"`
 	Password         string `json:"password"`
 	NewIP            string `json:"newIp"`
 	NewPort          string `json:"newPort"`

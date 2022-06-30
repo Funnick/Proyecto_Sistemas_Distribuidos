@@ -6,7 +6,8 @@ type Address struct {
 }
 
 type Agent struct {
-	AID           string   `json:"aid"`
+	Name          string   `json:"name"`
+	AID           []byte   `json:"aid"`
 	EndPoint      *Address `json:"endpoint"`
 	Password      string   `json:"password"`
 	Description   string   `json:"description"`
