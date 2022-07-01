@@ -10,18 +10,16 @@ func main() {
 	port := os.Args[2]
 	ipSucc := os.Args[3]
 	portSucc := os.Args[4]
-	if os.Args[5] == "1" {
+	switch os.Args[5] {
+	case "1":
 		chord.JoinTest(ip, port, ipSucc, portSucc)
-	}
-	if os.Args[5] == "2" {
+	case "2":
 		chord.SleepTest(ip, port, ipSucc, portSucc)
-	}
-	if os.Args[5] == "3" {
+	case "3":
 		chord.StabilizeTest(ip, port, ipSucc, portSucc)
-	}
-	if os.Args[5] == "4" {
+	case "4":
 		chord.FireTest(ip, port, ipSucc, portSucc)
-	} else {
+	default:
 		chord.SelfTest(ip, port, ipSucc, portSucc)
 	}
 }

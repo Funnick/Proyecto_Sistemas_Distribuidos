@@ -1,9 +1,10 @@
 package server
 
-type DBChord interface {
-	Delete(string, string) error
-	GetByName(string) (string, error)
-	GetByFunction(string) ([]string, error)
-	Set(Agent) error
-	Update(string, string, string) error
+type DataBasePlatform interface {
+	GetByName([]byte) (string, error)
+	GetByFun(string) ([]string, error)
+	GetAll() ([]string, error)
+	Set([]byte, string) error
+	Update([]byte, string) error
+	Delete([]byte) error
 }

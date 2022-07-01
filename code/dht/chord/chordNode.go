@@ -2,7 +2,7 @@ package chord
 
 import (
 	"bytes"
-	"fmt"
+	"log"
 	"net"
 	"sync"
 	"time"
@@ -79,22 +79,19 @@ func NewNode(info NodeInfo, cnf *Config, knowNode *NodeInfo, dbName string) *Nod
 		}
 	}()
 
-	/*
-		go func() {
-			ticker := time.NewTicker(100 * time.Millisecond)
-			for {
-				select {
-				case <-ticker.C:
-					node.fixFingers()
-				case <-node.stopCh:
-					ticker.Stop()
-					return
-				}
+	go func() {
+		ticker := time.NewTicker(400 * time.Millisecond)
+		for {
+			select {
+			case <-ticker.C:
+				node.fixFingers()
+			case <-node.stopCh:
+				ticker.Stop()
+				return
 			}
-		}()
+		}
+	}()
 
-
-	*/
 	go func() {
 		ticker := time.NewTicker(7 * time.Second)
 		for {
@@ -141,7 +138,7 @@ func (n *Node) Join(knowNode *NodeInfo) error {
 		var err error
 		succ, err = n.GetSuccessorOfKey(knowNode.EndPoint, n.Info.NodeID)
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Println(err.Error())
 			return nil
 		}
 	}
@@ -156,7 +153,7 @@ func (n *Node) Stop() {
 	n.l.Close()
 }
 
-// Node privete methods
+// Node private methods
 func (n *Node) findSuccessorOfKey(key []byte) *NodeInfo {
 
 	current := n.Info
@@ -176,7 +173,7 @@ func (n *Node) findSuccessorOfKey(key []byte) *NodeInfo {
 
 	succOfKey, err := n.GetSuccessorOfKey(cpn.EndPoint, key)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return nil
 	}
 	return succOfKey
@@ -285,7 +282,6 @@ func (n *Node) stabilize() {
 	if succ == nil {
 		return
 	}
-
 	predOfSucc, err := n.GetPredecessorOf(succ.EndPoint)
 	if err != nil {
 		return
@@ -295,7 +291,6 @@ func (n *Node) stabilize() {
 		n.Notify(succ.EndPoint)
 		return
 	}
-
 	if between(n.Info.NodeID, succ.NodeID, predOfSucc.NodeID) {
 		n.setSuccessor(predOfSucc)
 	}
@@ -350,6 +345,9 @@ func (n *Node) fixFingers() {
 
 	key := calculateFingerEntryID(n.Info.NodeID, n.next, n.cnf.HashSize)
 	nodeInfo := n.findSuccessorOfKey(key)
+	if nodeInfo == nil {
+		return
+	}
 	var node NodeInfo = NodeInfo{NodeID: nodeInfo.NodeID, EndPoint: nodeInfo.EndPoint}
 	n.setPosFT(n.next, node)
 }
@@ -360,7 +358,7 @@ func (n *Node) fixFingers() {
 func (n *Node) GetSuccessorOf(addr Address) (*NodeInfo, error) {
 	nodeInfo, err := getSuccessorOf(addr)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return nil, err
 	}
 	return nodeInfo, err
@@ -370,7 +368,7 @@ func (n *Node) GetSuccessorOf(addr Address) (*NodeInfo, error) {
 func (n *Node) GetSuccessorOfKey(addr Address, key []byte) (*NodeInfo, error) {
 	nodeInfo, err := getSuccessorOfKey(addr, key)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return nil, err
 	}
 	return nodeInfo, nil
@@ -380,7 +378,7 @@ func (n *Node) GetSuccessorOfKey(addr Address, key []byte) (*NodeInfo, error) {
 func (n *Node) GetPredecessorOf(addr Address) (*NodeInfo, error) {
 	nodeInfo, err := getPredecessorOf(addr)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return nil, err
 	}
 	return nodeInfo, err
@@ -392,7 +390,7 @@ func (n *Node) Notify(addr Address) error {
 	info = n.Info
 	err := notifyNode(addr, &info)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 	}
 	return nil
 }
@@ -400,17 +398,14 @@ func (n *Node) Notify(addr Address) error {
 // Make ping to a node
 func (n *Node) Ping(addr Address) bool {
 	err := ping(addr)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 // Storage Methods
 func (n *Node) AskForAKey(addr Address, key []byte) (string, error) {
 	data, err := askForAKey(addr, key)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return "", err
 	}
 	return data, nil
@@ -419,7 +414,7 @@ func (n *Node) AskForAKey(addr Address, key []byte) (string, error) {
 func (n *Node) SendSet(addr Address, key []byte, data string) error {
 	err := sendSet(addr, key, data)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 	}
 	return err
 }
@@ -427,7 +422,7 @@ func (n *Node) SendSet(addr Address, key []byte, data string) error {
 func (n *Node) SendDelete(addr Address, key []byte) error {
 	err := sendDelete(addr, key)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 	}
 	return err
 }

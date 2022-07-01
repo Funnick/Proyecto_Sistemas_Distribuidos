@@ -23,7 +23,7 @@ func between(a, b, key []byte) bool {
 	case -1:
 		return bytes.Compare(a, key) == -1 && bytes.Compare(key, b) == -1
 	case 0:
-		return bytes.Compare(a, key) != 0
+		return !bytes.Equal(a, key)
 	case 1:
 		return bytes.Compare(a, key) == -1 || bytes.Compare(key, b) == -1
 	}

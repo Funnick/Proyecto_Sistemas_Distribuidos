@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -11,7 +12,7 @@ import (
 type Platform struct {
 	endpoint Address
 	router   mux.Router
-	node     DBChord
+	node     DataBasePlatform
 }
 
 func NewPlatform(ip, port string) *Platform {
@@ -46,7 +47,7 @@ func (pl *Platform) CreateNewAgent(w http.ResponseWriter, r *http.Request) {
 	var requestMessage CreateAgentMessage
 	err := json.NewDecoder(r.Body).Decode(&requestMessage)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return
 	}
 	var endpoint Address = Address{IP: requestMessage.IP, Port: requestMessage.Port}
@@ -55,9 +56,14 @@ func (pl *Platform) CreateNewAgent(w http.ResponseWriter, r *http.Request) {
 		Password: requestMessage.Password, Description: requestMessage.Description,
 		Documentation: requestMessage.Documentation}
 
-	err = pl.node.Set(agent)
+	agentCode, err := json.Marshal(agent)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
+	}
+
+	err = pl.node.Set(agentCode, agent.Name)
+	if err != nil {
+		log.Println(err.Error())
 		responseMessage := ResponseMessage{Message: err.Error()}
 		json.NewEncoder(w).Encode(responseMessage)
 		return
@@ -72,13 +78,19 @@ func (pl *Platform) DeleteAgent(w http.ResponseWriter, r *http.Request) {
 	var requestMessage DeleteAgentMessage
 	err := json.NewDecoder(r.Body).Decode(&requestMessage)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return
 	}
 	var responseMessage ResponseMessage
-	err = pl.node.Delete("", "")
+	request, err := json.Marshal(requestMessage)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
+		return
+	}
+	//Revisar
+	err = pl.node.Delete(request)
+	if err != nil {
+		log.Println(err.Error())
 	} else {
 		responseMessage.Message = "Agent remove successfully"
 		json.NewEncoder(w).Encode(responseMessage)
@@ -100,12 +112,13 @@ func (pl *Platform) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err.Error())
 		return
 	}
+	//TODO todo esto
 	var responseMessage ResponseMessage
-	agent, err := pl.node.GetByName(requestMessage.Name)
+	agent, err := pl.node.GetByName([]byte(requestMessage.Name))
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	err = pl.node.Update("", "", string(agent))
+	err = pl.node.Update([]byte{}, ""+agent)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -124,7 +137,7 @@ func (pl *Platform) SearchAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var responseMessage SearchAgentMessageResponse
-	agentsFound, err := pl.node.GetByFunction(requestMessage.Description)
+	agentsFound, err := pl.node.GetByFun(requestMessage.Description)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
