@@ -13,7 +13,7 @@ type KeyRequest struct{ Key []byte }
 type NodeInfoRequest struct{ NInfo *NodeInfo }
 type DataKeyRequest struct {
 	Key  []byte
-	Data string
+	Data []byte
 }
 
 // Response structs
@@ -23,7 +23,7 @@ type NodeInfoResponse struct {
 	IsNil bool
 }
 type DataResponse struct {
-	Data string
+	Data []byte
 }
 
 // Alive error
@@ -159,6 +159,7 @@ func getSuccessorOf(addr Address) (*NodeInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer client.Close()
 
 	var response *NodeInfoResponse = &NodeInfoResponse{}
 	err = client.Call("Node.GetSuccessorRPC", &EmptyRequest{}, response)
@@ -178,13 +179,20 @@ func getSuccessorOfKey(addr Address, key []byte) (*NodeInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	var response *NodeInfoResponse = &NodeInfoResponse{}
+	defer client.Close()
+
+	var response *NodeInfoResponse = &NodeInfoResponse{NInfo: nil, IsNil: false}
 	err = client.Call("Node.GetSuccessorOfKeyRPC", &KeyRequest{Key: key}, response)
 	if err != nil {
 		return nil, err
 	}
 
 	if response.IsNil {
+		return nil, nil
+	}
+
+	if response.NInfo == nil {
+		fmt.Println("response nil")
 		return nil, nil
 	}
 
@@ -197,6 +205,7 @@ func getPredecessorOf(addr Address) (*NodeInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer client.Close()
 
 	var response *NodeInfoResponse = &NodeInfoResponse{}
 	err = client.Call("Node.GetPredecessorOfRPC", &EmptyRequest{}, response)
@@ -216,41 +225,45 @@ func notifyNode(addr Address, n *NodeInfo) error {
 	if err != nil {
 		return err
 	}
+	defer client.Close()
 
 	err = client.Call("Node.NotifyNode", &NodeInfoRequest{NInfo: n}, nil)
 	return err
 }
 
 func ping(addr Address) error {
-	_, err := rpc.DialHTTP("tcp", getAddr(addr))
+	client, err := rpc.DialHTTP("tcp", getAddr(addr))
 	if err != nil {
 		return PingResquestError{}
 	}
+	defer client.Close()
 
 	return nil
 }
 
-func askForAKey(addr Address, key []byte) (string, error) {
+func askForAKey(addr Address, key []byte) ([]byte, error) {
 	client, err := rpc.DialHTTP("tcp", getAddr(addr))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
+	defer client.Close()
 
 	var response *DataResponse = &DataResponse{}
 	err = client.Call("Node.GetResource", &KeyRequest{Key: key}, response)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	return response.Data, nil
 }
 
-func sendSet(addr Address, key []byte, data string) error {
+func sendSet(addr Address, key []byte, data []byte) error {
 	client, err := rpc.DialHTTP("tcp", getAddr(addr))
 	if err != nil {
 		return err
 	}
+	defer client.Close()
 
 	return client.Call("Node.SaveResource", &DataKeyRequest{Key: key, Data: data}, &EmptyResponse{})
 }
@@ -260,6 +273,7 @@ func sendDelete(addr Address, key []byte) error {
 	if err != nil {
 		return err
 	}
+	defer client.Close()
 
 	return client.Call("Node.DeleteResource", &KeyRequest{Key: key}, &EmptyResponse{})
 }
