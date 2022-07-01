@@ -402,16 +402,16 @@ func (n *Node) Ping(addr Address) bool {
 }
 
 // Storage Methods
-func (n *Node) AskForAKey(addr Address, key []byte) (string, error) {
+func (n *Node) AskForAKey(addr Address, key []byte) ([]byte, error) {
 	data, err := askForAKey(addr, key)
 	if err != nil {
 		log.Println(err.Error())
-		return "", err
+		return nil, err
 	}
 	return data, nil
 }
 
-func (n *Node) SendSet(addr Address, key []byte, data string) error {
+func (n *Node) SendSet(addr Address, key, data []byte) error {
 	err := sendSet(addr, key, data)
 	if err != nil {
 		log.Println(err.Error())

@@ -8,11 +8,11 @@ import (
 )
 
 type DataBasePlatform interface {
-	GetByName([]byte) (string, error)
-	GetByFun(string) ([]string, error)
-	GetAll() ([]string, error)
-	Set([]byte, string) error
-	Update([]byte, string) error
+	GetByName([]byte) ([]byte, error)
+	//GetByFun(string) ([][]byte, error)
+	GetAll() ([][]byte, error)
+	Set([]byte, []byte) error
+	Update([]byte, []byte) error
 	Delete([]byte) error
 }
 
@@ -24,7 +24,7 @@ type DataBasePl struct {
 // Cada informacion es un par key-data
 type RowData struct {
 	Key  []byte
-	Data string
+	Data []byte
 }
 
 func NewDataBase(fileName string) *DataBasePl {
@@ -88,10 +88,10 @@ func (db *DataBasePl) writeAll(rows []RowData) error {
 	return nil
 }
 
-func (db *DataBasePl) GetByName(key []byte) (string, error) {
+func (db *DataBasePl) GetByName(key []byte) ([]byte, error) {
 	rows, err := db.readAll()
 	if err != nil {
-		return "", err
+		return make([]byte, 0), err
 	}
 
 	for _, elem := range rows {
@@ -100,13 +100,14 @@ func (db *DataBasePl) GetByName(key []byte) (string, error) {
 		}
 	}
 
-	return "", StorageError{message: "There is no agent with that name"}
+	return make([]byte, 0), StorageError{message: "There is no agent with that name"}
 }
 
-func (db *DataBasePl) GetByFun(fun string) ([]string, error) {
+/*
+func (db *DataBasePl) GetByFun(fun string) ([][]byte, error) {
 	rows, err := db.readAll()
 	if err != nil {
-		return []string{}, err
+		return make([][]byte, 0), err
 	}
 
 	data := make([]string, 0)
@@ -120,14 +121,19 @@ func (db *DataBasePl) GetByFun(fun string) ([]string, error) {
 	}
 	return data, nil
 }
+*/
 
-func (db *DataBasePl) GetAll() ([]string, error) {
+func (db *DataBasePl) GetAll() ([][]byte, error) {
 	rows, err := db.readAll()
 	if err != nil {
 		return nil, err
 	}
 
-	var data []string = make([]string, len(rows))
+	if len(rows) == 0 {
+		return nil, StorageError{message: "No agents"}
+	}
+
+	var data [][]byte = make([][]byte, len(rows))
 
 	for i, elem := range rows {
 		data[i] = elem.Data
@@ -136,7 +142,7 @@ func (db *DataBasePl) GetAll() ([]string, error) {
 	return data, nil
 }
 
-func (db *DataBasePl) Set(vKey []byte, vData string) error {
+func (db *DataBasePl) Set(vKey []byte, vData []byte) error {
 	rows, err := db.readAll()
 	if err != nil {
 		return err
@@ -157,7 +163,7 @@ func (db *DataBasePl) Set(vKey []byte, vData string) error {
 	return nil
 }
 
-func (db *DataBasePl) Update(vKey []byte, vData string) error {
+func (db *DataBasePl) Update(vKey []byte, vData []byte) error {
 	rows, err := db.readAll()
 	if err != nil {
 		return err

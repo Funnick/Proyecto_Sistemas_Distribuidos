@@ -13,7 +13,7 @@ type KeyRequest struct{ Key []byte }
 type NodeInfoRequest struct{ NInfo *NodeInfo }
 type DataKeyRequest struct {
 	Key  []byte
-	Data string
+	Data []byte
 }
 
 // Response structs
@@ -23,7 +23,7 @@ type NodeInfoResponse struct {
 	IsNil bool
 }
 type DataResponse struct {
-	Data string
+	Data []byte
 }
 
 // Alive error
@@ -242,11 +242,11 @@ func ping(addr Address) error {
 	return nil
 }
 
-func askForAKey(addr Address, key []byte) (string, error) {
+func askForAKey(addr Address, key []byte) ([]byte, error) {
 	client, err := rpc.DialHTTP("tcp", getAddr(addr))
 	if err != nil {
 		log.Println(err.Error())
-		return "", err
+		return nil, err
 	}
 
 	var response *DataResponse = &DataResponse{}
@@ -254,13 +254,13 @@ func askForAKey(addr Address, key []byte) (string, error) {
 
 	if err != nil {
 		log.Println(err.Error())
-		return "", err
+		return nil, err
 	}
 
 	return response.Data, nil
 }
 
-func sendSet(addr Address, key []byte, data string) error {
+func sendSet(addr Address, key, data []byte) error {
 	client, err := rpc.DialHTTP("tcp", getAddr(addr))
 	if err != nil {
 		log.Println(err.Error())
