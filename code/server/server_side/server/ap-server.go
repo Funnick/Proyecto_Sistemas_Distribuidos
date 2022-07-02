@@ -3,7 +3,6 @@ package server
 import (
 	"crypto/sha1"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -32,7 +31,7 @@ func NewPlatform(ip, port string) *Platform {
 	pl.router.HandleFunc("/ap/create", pl.CreateNewAgent).Methods(http.MethodPost)
 	pl.router.HandleFunc("/ap/delete", pl.DeleteAgent).Methods(http.MethodDelete)
 	pl.router.HandleFunc("/ap/searchbyname", pl.SearchByName).Methods(http.MethodGet)
-	//pl.router.HandleFunc("/ap/searchbyfunc", pl.SearchByFunc).Methods(http.MethodGet)
+	pl.router.HandleFunc("/ap/searchbydesc", pl.SearchByDesc).Methods(http.MethodGet)
 	pl.router.HandleFunc("/ap/update", pl.UpdateAgent).Methods(http.MethodPut)
 
 	return pl
@@ -131,16 +130,14 @@ func (pl *Platform) DeleteAgent(w http.ResponseWriter, r *http.Request) {
 }
 
 // Update an agent
-// TODO
 func (pl *Platform) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var requestMessage UpdateAgentMessage
 	err := json.NewDecoder(r.Body).Decode(&requestMessage)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return
 	}
-	//TODO todo esto
 	var responseMessage ResponseMessage
 
 	name := requestMessage.Name
@@ -187,50 +184,49 @@ func (pl *Platform) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	err = pl.node.Update(agentF.Name, newAgent)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 	}
 	responseMessage.Message = "Agent updated successfully"
 	json.NewEncoder(w).Encode(responseMessage)
 }
 
-// Search an agent by functionality
-/*func (pl *Platform) SearchByFunc(w http.ResponseWriter, r *http.Request) {
+// Search an agent by description
+func (pl *Platform) SearchByDesc(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	var requestMessage SearchAgentMessage
+	var requestMessage SearchAgentDescMessage
 	err := json.NewDecoder(r.Body).Decode(&requestMessage)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return
 	}
 	var responseMessage SearchAgentMessageResponse
 	//functionality, err := json.Marshal(requestMessage.Criteria)
-	agentsFound, err := pl.node.GetByFun(requestMessage.Criteria)
+	agentsFound, err := pl.node.GetByName(requestMessage.Description)
 	if err != nil {
-		fmt.Println(err.Error())
-	}
-	if len(agentsFound) > 0 {
-		responseMessage.Message = "These services were found"
-		responseMessage.AgentFound = agentsFound
+		log.Println(err.Error())
+		responseMessage.Message = "There is no agent with that description"
 		json.NewEncoder(w).Encode(responseMessage)
 		return
 	}
-	responseMessage.Message = "There is no agent with that description"
+	var agent Agent
+	json.Unmarshal(agentsFound, &agent)
+	responseMessage.Message = ""
+	responseMessage.AgentFound = agent
 	json.NewEncoder(w).Encode(responseMessage)
-}*/
+}
 
 func (pl *Platform) SearchByName(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var requestMessage SearchAgentNameMessage
 	err := json.NewDecoder(r.Body).Decode(&requestMessage)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return
 	}
 	var responseMessage SearchAgentMessageResponse
-	fmt.Println(requestMessage.Name)
 	agentsFound, err := pl.node.GetByName(requestMessage.Name)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		responseMessage.Message = "There is no agent with that name"
 		json.NewEncoder(w).Encode(responseMessage)
 		return
@@ -250,6 +246,6 @@ func (pl *Platform) Run(port string) {
 	pl.node = chord.NewNode(info, chord.DefaultConfig(), nil, "pepeDB")
 	err := http.ListenAndServe(pl.endpoint.IP+":"+pl.endpoint.Port, &pl.router)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 	}
 }

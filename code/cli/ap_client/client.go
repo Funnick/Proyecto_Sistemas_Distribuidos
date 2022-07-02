@@ -167,7 +167,7 @@ func SearchAgentNameRequest(name string) (resp string, agent Agent) {
 	if len(responseMessage.Message) > 0 {
 		return responseMessage.Message, Agent{}
 	}
-	return "OK", responseMessage.AgentsFound
+	return "\u2713", responseMessage.AgentsFound
 }
 
 func SearchAgentDescRequest(description string) (resp string, agent Agent) {
@@ -207,7 +207,7 @@ func SearchAgentDescRequest(description string) (resp string, agent Agent) {
 	if len(responseMessage.Message) > 0 {
 		return responseMessage.Message, Agent{}
 	}
-	return "OK", responseMessage.AgentsFound
+	return "\u2713", responseMessage.AgentsFound
 }
 
 func UpdateAgentRequest(name, password, newIP, newPort,

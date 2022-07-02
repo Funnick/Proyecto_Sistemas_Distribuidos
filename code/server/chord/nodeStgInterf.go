@@ -6,7 +6,7 @@ import (
 
 type DBChord interface {
 	GetByName(string) ([]byte, error)
-	//GetByFun(string) ([]string, error)
+	//GetByFun(string) ([]byte, error)
 	Set(string, string, []byte) error
 	Update(string, []byte) error
 	Delete(string, string) error
