@@ -65,8 +65,9 @@ func GetAgentsRequest() (resp string, agentList []Agent) {
 
 // Create new agent
 // TODO
-func CreateAgentRequest(ip, port, password, description, documentation string) (resp string) {
+func CreateAgentRequest(name, ip, port, password, description, documentation string) (resp string) {
 	var agentMessage CreateAgentMessage = CreateAgentMessage{
+        Name: name,
         IP: ip,
         Port: port,
         Password: password,
