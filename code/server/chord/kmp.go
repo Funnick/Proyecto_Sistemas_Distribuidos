@@ -1,4 +1,4 @@
-package server
+package chord
 
 const (
 	PatternSize int = 100

@@ -1,4 +1,4 @@
-package server
+package ap_client
 
 type ResponseMessage struct {
 	Message string `json:"message"`
@@ -15,26 +15,24 @@ type CreateAgentMessage struct {
 
 type DeleteAgentMessage struct {
 	Name     string `json:"name"`
-	IP       string `json:"ip"`
-	Port     string `json:"port"`
 	Password string `json:"password"`
 }
 
-type SearchAgentMessage struct {
+type SearchAgentNameMessage struct {
+	Name string `json:"name"`
+}
+type SearchAgentDescMessage struct {
 	Description string `json:"description"`
 }
 
 type SearchAgentMessageResponse struct {
-	AgentFound []Agent `json:"agent"`
-	Message    string  `json:"message"`
+	AgentsFound Agent  `json:"agent"`
+	Message     string `json:"message"`
 }
 
 type UpdateAgentMessage struct {
 	Name             string `json:"name"`
-	IP               string `json:"ip"`
-	Port             string `json:"port"`
 	Password         string `json:"password"`
-	NewName          string `json:"newName"`
 	NewIP            string `json:"newIp"`
 	NewPort          string `json:"newPort"`
 	NewPassword      string `json:"newPassword"`

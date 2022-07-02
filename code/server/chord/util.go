@@ -9,6 +9,10 @@ type Address struct {
 	Port string
 }
 
+type Agent struct {
+	Name string
+}
+
 // Covert an address into a string
 func getAddr(addr Address) string {
 	return addr.IP + ":" + addr.Port
@@ -19,7 +23,7 @@ func between(a, b, key []byte) bool {
 	case -1:
 		return bytes.Compare(a, key) == -1 && bytes.Compare(key, b) == -1
 	case 0:
-		return bytes.Compare(a, key) != 0
+		return !bytes.Equal(a, key)
 	case 1:
 		return bytes.Compare(a, key) == -1 || bytes.Compare(key, b) == -1
 	}
