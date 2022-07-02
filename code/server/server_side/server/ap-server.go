@@ -1,7 +1,6 @@
 package server
 
 import (
-	"crypto/sha1"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -14,8 +13,7 @@ import (
 type Platform struct {
 	endpoint Address
 	router   mux.Router
-	// Aquí creo que debería ir un chord.Node
-	node chord.DBChord // ir a la línea 26
+	node     chord.DBChord
 }
 
 func NewPlatform(ip, port string) *Platform {
@@ -24,7 +22,7 @@ func NewPlatform(ip, port string) *Platform {
 	pl := &Platform{
 		endpoint: endpoint,
 		router:   *mux.NewRouter(),
-		node:     nil, // Aquí entonces habría que inicializar el nodo y eso no sé cómo hacerlo
+		node:     nil,
 	}
 
 	pl.router.HandleFunc("/ap/agents", pl.GetAgents).Methods(http.MethodGet)
@@ -65,7 +63,6 @@ func (pl *Platform) CreateNewAgent(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err.Error())
 	}
-
 	err = pl.node.Set(agent.Name, agent.Description, agentCode)
 	if err != nil {
 		log.Println(err.Error())
@@ -238,12 +235,8 @@ func (pl *Platform) SearchByName(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(responseMessage)
 }
 
-func (pl *Platform) Run(port string) {
-	h := sha1.New()
-	h.Write([]byte(pl.endpoint.IP + ":" + port))
-	val := h.Sum(nil)
-	info := chord.NodeInfo{NodeID: val, EndPoint: chord.Address{IP: pl.endpoint.IP, Port: port}}
-	pl.node = chord.NewNode(info, chord.DefaultConfig(), nil, "pepeDB")
+func (pl *Platform) Run(port, nameDB, knowIP, knowPort string) {
+	pl.node = chord.NewNode(pl.endpoint.IP, port, nameDB, knowIP, knowPort, chord.DefaultConfig())
 	err := http.ListenAndServe(pl.endpoint.IP+":"+pl.endpoint.Port, &pl.router)
 	if err != nil {
 		log.Println(err.Error())

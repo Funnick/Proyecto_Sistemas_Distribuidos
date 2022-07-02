@@ -305,6 +305,9 @@ func (n *Node) stabilize() {
 		return
 	}
 	if between(n.Info.NodeID, succ.NodeID, predOfSucc.NodeID) {
+		if !bytes.Equal(predOfSucc.NodeID, n.Info.NodeID) {
+			n.ReplicateKey(predOfSucc.EndPoint)
+		}
 		n.setSuccessor(predOfSucc)
 	}
 	newSucc := n.getSuccessor()
@@ -317,7 +320,9 @@ func (n *Node) notify(newPredecessor *NodeInfo) {
 
 	if pred == nil || between(pred.NodeID, n.Info.NodeID, newPredecessor.NodeID) {
 		// transferir llaves
-		n.SendPredecessorKeys(newPredecessor.EndPoint, newPredecessor.NodeID)
+		if !bytes.Equal(newPredecessor.NodeID, n.Info.NodeID) {
+			n.SendPredecessorKeys(newPredecessor.EndPoint, newPredecessor.NodeID)
+		}
 		n.setPredecessor(newPredecessor)
 	}
 }
@@ -327,6 +332,7 @@ func (n *Node) checkSuccessor() {
 	succ := n.getSuccessor()
 
 	if succ == nil || !n.Ping(succ.EndPoint) {
+		fmt.Println("se cayo el succ")
 		n.ftMutex.RLock()
 		defer n.ftMutex.RUnlock()
 		for i := 0; i < 160; i++ {
@@ -421,7 +427,9 @@ func (n *Node) Ping(addr Address) bool {
 
 // Storage Methods
 func (n *Node) AskForAKey(addr Address, key []byte) ([]byte, error) {
+	fmt.Println(n.Info.EndPoint, addr)
 	data, err := askForAKey(addr, key)
+	fmt.Println("5")
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -457,6 +465,8 @@ func (n *Node) ReplicateKey(addr Address) error {
 	n.dbMutex.RLock()
 	defer n.dbMutex.RUnlock()
 
+	fmt.Println(n.Info.EndPoint, "replicando al succ", addr)
+
 	rows, err := n.db.GetKeyData()
 	if err != nil {
 		fmt.Println(err.Error())
@@ -467,7 +477,6 @@ func (n *Node) ReplicateKey(addr Address) error {
 		err = n.SendReplicate(addr, elem.Key, elem.Data)
 		if err != nil {
 			fmt.Println(err.Error())
-			return err
 		}
 	}
 
@@ -479,6 +488,7 @@ func (n *Node) SendPredecessorKeys(addr Address, nID []byte) error {
 	defer n.dbMutex.RUnlock()
 
 	pred := n.getPredecessor()
+	fmt.Println(n.Info.EndPoint, "replicando al pred", addr)
 
 	rows, err := n.db.GetKeyData()
 	if err != nil {

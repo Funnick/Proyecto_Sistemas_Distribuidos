@@ -30,7 +30,7 @@ type RowData struct {
 
 func NewDataBase(fileName string) *DataBasePl {
 	db := &DataBasePl{
-		fileName: fileName + "DB",
+		fileName: fileName + "DB.gob",
 	}
 
 	file, err := os.OpenFile(db.fileName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)

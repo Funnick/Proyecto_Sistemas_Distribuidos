@@ -1,6 +1,7 @@
 package chord
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net"
@@ -162,9 +163,12 @@ func (n *Node) SaveResource(request *DataKeyRequest, response *EmptyResponse) er
 
 	// Replicacion
 	succ := n.getSuccessor()
-	n.SendSet(succ.EndPoint, request.Key, request.Data)
+	if !bytes.Equal(succ.NodeID, n.Info.NodeID) {
+		n.SendReplicate(succ.EndPoint, request.Key, request.Data)
+	}
 
-	return n.db.Set(request.Key, request.Data)
+	err := n.db.Set(request.Key, request.Data)
+	return err
 }
 
 func (n *Node) DeleteResource(request *KeyRequest, response *EmptyResponse) error {
@@ -173,7 +177,9 @@ func (n *Node) DeleteResource(request *KeyRequest, response *EmptyResponse) erro
 
 	// Replicacion
 	succ := n.getSuccessor()
-	n.SendDelete(succ.EndPoint, request.Key)
+	if !bytes.Equal(succ.NodeID, n.Info.NodeID) {
+		n.SendDelete(succ.EndPoint, request.Key)
+	}
 
 	return n.db.Delete(request.Key)
 }
@@ -290,6 +296,7 @@ func ping(addr Address) error {
 
 func askForAKey(addr Address, key []byte) ([]byte, error) {
 	client, err := rpc.Dial("tcp", getAddr(addr))
+	fmt.Println("Dial ok")
 	if err != nil {
 		return nil, err
 	}
@@ -297,7 +304,7 @@ func askForAKey(addr Address, key []byte) ([]byte, error) {
 
 	var response *DataResponse = &DataResponse{}
 	err = client.Call("Node.GetResource", &KeyRequest{Key: key}, response)
-
+	fmt.Println("Call ok")
 	if err != nil {
 		return nil, err
 	}
