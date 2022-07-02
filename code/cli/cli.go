@@ -1,8 +1,8 @@
 package main
 
 import (
+	client "client/ap_client"
 	"fmt"
-	client "server/cli/ap_client"
 )
 
 func main() {

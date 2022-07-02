@@ -220,7 +220,7 @@ func (pl *Platform) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 
 func (pl *Platform) SearchByName(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	var requestMessage SearchAgentMessage
+	var requestMessage SearchAgentNameMessage
 	err := json.NewDecoder(r.Body).Decode(&requestMessage)
 	if err != nil {
 		fmt.Println(err.Error())

@@ -19,7 +19,11 @@ type DeleteAgentMessage struct {
 	Password    string `json:"password"`
 }
 
-type SearchAgentMessage struct {
+type SearchAgentNameMessage struct {
+	Name string `json:"name"`
+}
+
+type SearchAgentDescMessage struct {
 	Name string `json:"name"`
 }
 
