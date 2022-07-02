@@ -11,6 +11,7 @@ type DataBasePlatform interface {
 	GetByName([]byte) ([]byte, error)
 	//GetByFun(string) ([][]byte, error)
 	GetAll() ([][]byte, error)
+	GetKeyData() ([]RowData, error)
 	Set([]byte, []byte) error
 	Update([]byte, []byte) error
 	Delete([]byte) error
@@ -29,7 +30,7 @@ type RowData struct {
 
 func NewDataBase(fileName string) *DataBasePl {
 	db := &DataBasePl{
-		fileName: fileName,
+		fileName: fileName + "DB",
 	}
 
 	file, err := os.OpenFile(db.fileName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
@@ -86,6 +87,10 @@ func (db *DataBasePl) writeAll(rows []RowData) error {
 	}
 
 	return nil
+}
+
+func (db *DataBasePl) GetKeyData() ([]RowData, error) {
+	return db.readAll()
 }
 
 func (db *DataBasePl) GetByName(key []byte) ([]byte, error) {

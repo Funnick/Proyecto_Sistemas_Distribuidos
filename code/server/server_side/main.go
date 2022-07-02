@@ -1,7 +1,7 @@
 package main
 
 import (
-	"agent_platform/server"
+	"server/server_side/server"
 )
 
 func main() {

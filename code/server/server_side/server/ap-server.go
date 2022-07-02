@@ -123,36 +123,6 @@ func updateAgent(w http.ResponseWriter, r *http.Request) {
 }
 
 // Search an agent
-func searchAgent(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	var requestMessage SearchAgentMessage
-	err := json.NewDecoder(r.Body).Decode(&requestMessage)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	var responseMessage SearchAgentMessageResponse
-	agentsFound := localSearch(requestMessage.Description)
-	if len(agentsFound) > 0 {
-		responseMessage.Message = ""
-		responseMessage.AgentFound = agentsFound
-		json.NewEncoder(w).Encode(responseMessage)
-		return
-	}
-	responseMessage.Message = "There is no agent with that description"
-	json.NewEncoder(w).Encode(responseMessage)
-}
-
-// Local intersections
-func localSearch(query string) []Agent {
-	rankAgent := make([]Agent, 0)
-	for _, agent := range agents {
-		if SearchString(agent.Description, query) != -1 {
-			rankAgent = append(rankAgent, agent)
-		}
-	}
-	return rankAgent
-}
 
 func NewServerAP(endpoint *Address) *ServerAP {
 	newServer := &ServerAP{endpoint: endpoint, router: *mux.NewRouter()}
@@ -160,7 +130,7 @@ func NewServerAP(endpoint *Address) *ServerAP {
 	newServer.router.HandleFunc("/ap/agents", getAgents).Methods(http.MethodGet)
 	newServer.router.HandleFunc("/ap/create", createNewAgent).Methods(http.MethodPost)
 	newServer.router.HandleFunc("/ap/delete", deleteAgent).Methods(http.MethodDelete)
-	newServer.router.HandleFunc("/ap/search", searchAgent).Methods(http.MethodGet)
+	//newServer.router.HandleFunc("/ap/search", searchAgent).Methods(http.MethodGet)
 	newServer.router.HandleFunc("/ap/update", updateAgent).Methods(http.MethodPut)
 
 	return newServer
@@ -217,7 +187,7 @@ func StartServer(ip string, port string) {
 	router.HandleFunc("/ap/agents", getAgents).Methods(http.MethodGet)
 	router.HandleFunc("/ap/create", createNewAgent).Methods(http.MethodPost)
 	router.HandleFunc("/ap/delete", deleteAgent).Methods(http.MethodDelete)
-	router.HandleFunc("/ap/search", searchAgent).Methods(http.MethodGet)
+	//router.HandleFunc("/ap/search", searchAgent).Methods(http.MethodGet)
 	router.HandleFunc("/ap/update", updateAgent).Methods(http.MethodPut)
 
 	// Init Server

@@ -1,3 +1,3 @@
-module agent_platform_client
+module client
 
 go 1.18

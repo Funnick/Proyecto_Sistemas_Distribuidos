@@ -7,9 +7,9 @@ import (
 type DBChord interface {
 	GetByName(string) ([]byte, error)
 	//GetByFun(string) ([]string, error)
-	Set(string, []byte) error
+	Set(string, string, []byte) error
 	Update(string, []byte) error
-	Delete(string) error
+	Delete(string, string) error
 }
 
 const (
@@ -18,6 +18,9 @@ const (
 )
 
 func (n *Node) GetByName(agentName string) ([]byte, error) {
+	n.dbMutex.RLock()
+	defer n.dbMutex.RUnlock()
+
 	key, err := n.getHashKey(agentName)
 	if err != nil {
 		return nil, err
@@ -51,9 +54,14 @@ func setNames(agentNames []byte, name string) ([]byte, error) {
 
 func setFunctions(agentsFun []byte, fun string, name string) ([]byte, error) {
 	var af map[string]string
-	err := json.Unmarshal(agentsFun, &af)
-	if err != nil {
-		return nil, err
+
+	if len(agentsFun) == 0 {
+		af = make(map[string]string, 1)
+	} else {
+		err := json.Unmarshal(agentsFun, &af)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// kmp
@@ -63,6 +71,9 @@ func setFunctions(agentsFun []byte, fun string, name string) ([]byte, error) {
 }
 
 func (n *Node) Set(name string, fun string, data []byte) error {
+	n.dbMutex.Lock()
+	defer n.dbMutex.Unlock()
+
 	// Actualiza la lista de los nombres de los agentes
 	key, err := n.getHashKey(Names)
 	if err != nil {
@@ -121,6 +132,9 @@ func (n *Node) Set(name string, fun string, data []byte) error {
 
 // Arreglar
 func (n *Node) Update(name string, data []byte) error {
+	n.dbMutex.Lock()
+	defer n.dbMutex.Unlock()
+
 	key, err := n.getHashKey(name)
 	if err != nil {
 		return err
@@ -166,6 +180,9 @@ func deleteFun(agentsFun []byte, fun string) ([]byte, error) {
 
 // Falta arreglar error de no tener el Names o Fun
 func (n *Node) Delete(name string, fun string) error {
+	n.dbMutex.Lock()
+	defer n.dbMutex.Unlock()
+
 	key, err := n.getHashKey(Names)
 	nInfo := n.findSuccessorOfKey(key)
 	agentNames, err := n.AskForAKey(nInfo.EndPoint, key)
