@@ -14,12 +14,13 @@ type CreateAgentMessage struct {
 }
 
 type DeleteAgentMessage struct {
-	Name     string `json:"name"`
-	Password string `json:"password"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Password    string `json:"password"`
 }
 
 type SearchAgentMessage struct {
-	Description string `json:"description"`
+	Criteria string `json:"criteria"`
 }
 
 type SearchAgentMessageResponse struct {
@@ -29,10 +30,7 @@ type SearchAgentMessageResponse struct {
 
 type UpdateAgentMessage struct {
 	Name             string `json:"name"`
-	IP               string `json:"ip"`
-	Port             string `json:"port"`
 	Password         string `json:"password"`
-	NewName          string `json:"newName"`
 	NewIP            string `json:"newIp"`
 	NewPort          string `json:"newPort"`
 	NewPassword      string `json:"newPassword"`

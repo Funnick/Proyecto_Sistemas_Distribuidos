@@ -8,12 +8,12 @@ import (
 )
 
 type DataBasePlatform interface {
-	GetByName([]byte) ([]byte, error)
-	//GetByFun(string) ([][]byte, error)
+	GetByName(string) ([]byte, error)
+	GetByFun(string) ([][]byte, error)
 	GetAll() ([][]byte, error)
-	Set([]byte, []byte) error
-	Update([]byte, []byte) error
-	Delete([]byte) error
+	Set(string, []byte) error
+	Update(string, []byte) error
+	Delete(string) error
 }
 
 // Base de Datos para la plataforma

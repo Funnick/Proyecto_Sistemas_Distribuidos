@@ -1,10 +1,10 @@
 package server
 
 type DataBasePlatform interface {
-	GetByName([]byte) (string, error)
+	GetByName([]byte) ([]byte, error)
 	GetByFun(string) ([]string, error)
 	GetAll() ([]string, error)
 	Set([]byte, string) error
-	Update([]byte, string) error
-	Delete([]byte) error
+	Update([]byte) error
+	Delete([]byte, []byte) error
 }
