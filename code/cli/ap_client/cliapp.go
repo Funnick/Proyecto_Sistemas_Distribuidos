@@ -2,10 +2,8 @@ package ap_client
 
 import (
 	"fmt"
-	"log"
-	"strings"
-
 	"github.com/urfave/cli"
+	"strings"
 )
 
 var conf string
@@ -23,7 +21,7 @@ var App = cli.NewApp()
 func Info() {
 	App.Name = "Agent Platform Client CLI"
 	App.Usage = "a CLI for the Agent Platform"
-	App.Version = "0.0.0"
+	App.Version = "1.0.0"
 	App.Authors = []cli.Author{
 		{
 			Name:  "Miguel Alejandro Rodríguez Hernández",
@@ -44,7 +42,7 @@ func Flags() {
 	App.Flags = []cli.Flag{
 		&cli.StringFlag{
 			Name:        "config, c",
-			FilePath:    "./ap_client/config.txt",
+			Value:       "./ap-client/config.cfg",
 			Usage:       "Load configuration from `FILE`",
 			Destination: &conf,
 		},
@@ -55,25 +53,11 @@ func Flags() {
 func Commnads() {
 	App.Commands = []cli.Command{
 		{
-			Name:    "load-conf",
-			Aliases: []string{"L"},
-			Usage:   "Load a config txt",
-			Action: func(c *cli.Context) error {
-				conf_path := c.Args().First()
-				if conf_path == "" {
-					LoadConfig()
-				} else {
-					//TODO: agregar una funcion que lea de un txt
-					fmt.Println(conf)
-				}
-				return nil
-			},
-		},
-		{
-			Name:    "get-agents",
-			Aliases: []string{"G"},
+			Name:    "get-all-agents",
+			Aliases: []string{"A"},
 			Usage:   "Request all agent to the server",
 			Action: func(c *cli.Context) error {
+				LoadConfig(conf)
 				resp, agentList := GetAgentsRequest()
 				fmt.Println(resp, agentList)
 				return nil
@@ -81,55 +65,53 @@ func Commnads() {
 		},
 
 		{
-			Name:            "create-agent",
-			Aliases:         []string{"C"},
-			Usage:           "Create new agent",
-			UsageText:       "!234",
-			Description:     "una desc",
-			ArgsUsage:       "kkk",
-			SkipFlagParsing: false,
-			HideHelp:        false,
-			Hidden:          false,
-			HelpName:        "doo!",
+			Name:    "create-agent",
+			Aliases: []string{"C"},
+			Usage:   "Create new agent using the parameters [-i ip] [-pr port] [-des description] [-doc documentation]",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
-					Name:        "ip",
+					Name:        "ip, i",
 					Value:       "",
 					Usage:       "Agent ip",
 					Destination: &ip,
+					Required:    true,
 				},
 				&cli.StringFlag{
-					Name:        "port",
+					Name:        "port, pr",
 					Value:       "",
 					Usage:       "Agent port",
 					Destination: &port,
+					Required:    true,
 				},
 				&cli.StringFlag{
 					Name:        "password, pass, p",
 					Value:       "",
 					Usage:       "Password that gives access to an agent",
 					Destination: &password,
+					Required:    true,
 				},
 				&cli.StringFlag{
-					Name:        "description",
+					Name:        "description, des",
 					Value:       "",
 					Usage:       "Agent description",
 					Destination: &description,
+					Required:    true,
 				},
 				&cli.StringFlag{
 					Name:        "doc",
 					Value:       "",
 					Usage:       "Agent doc",
 					Destination: &doc,
+					Required:    true,
 				},
 			},
 
 			Action: func(c *cli.Context) error {
-                err_val := create_validation()
-                if err_val  != nil {
-                    return err_val
-                }
-				fmt.Println(ip, port, password, description, doc)
+				LoadConfig(conf)
+				err_val := create_validation()
+				if err_val != nil {
+					return err_val
+				}
 				resp := CreateAgentRequest(ip, port, password, description, doc)
 				fmt.Println(resp)
 				return nil
@@ -145,22 +127,26 @@ func Commnads() {
 					Value:       "",
 					Usage:       "Agent id",
 					Destination: &aid,
+					Required:    true,
 				},
 				&cli.StringFlag{
 					Name:        "password, pass, p",
 					Value:       "",
 					Usage:       "Password that gives access to an agent",
 					Destination: &password,
+					Required:    true,
 				},
 			},
 
 			Action: func(c *cli.Context) error {
-                err_val := delete_validation()
-                if err_val != nil{
-                    return err_val
-                }
+				fmt.Println(conf)
+				LoadConfig(conf)
 
-				fmt.Println(password, aid)
+				err_val := delete_validation()
+				if err_val != nil {
+					return err_val
+				}
+
 				resp := DeleteAgentRequest(aid, password)
 				fmt.Println(resp)
 
@@ -169,60 +155,77 @@ func Commnads() {
 		},
 
 		{
-			Name:    "search-agent",
-			Aliases: []string{"S"},
-			Usage:   "Search an Agent",
+			Name:    "search-desc-agent",
+			Aliases: []string{"Sd"},
+			Usage:   "Search an Agent by description",
 			Action: func(c *cli.Context) error {
+				LoadConfig(conf)
 				if c.NArg() > 0 {
 					description := strings.Join(c.Args(), " ")
-					log.Printf(description)
-					resp, _ := SearchAgentRequest(description)
+					resp, _ := SearchAgentDescRequest(description)
 					fmt.Println(resp)
 					return nil
 				}
 				fmt.Println("Please insert a valid string to search")
-				return cli.NewExitError("Empty search string", 88)
+				return cli.NewExitError("Empty search string", 1)
+			},
+		},
+
+		{
+			Name:    "search-name-agent",
+			Aliases: []string{"S"},
+			Usage:   "Search an Agent by name",
+			Action: func(c *cli.Context) error {
+				LoadConfig(conf)
+				if c.NArg() > 0 {
+					description := strings.Join(c.Args(), " ")
+					resp, _ := SearchAgentNameRequest(description)
+					fmt.Println(resp)
+					return nil
+				}
+				fmt.Println("Please insert a valid string to search")
+				return cli.NewExitError("Empty search string", 1)
 			},
 		},
 
 		{
 			Name:    "update-agent",
 			Aliases: []string{"U"},
-			Usage:   "Update an existing agent",
+			Usage:   "Update an existing agent using the parameters [-n name] [-p pswrd] [-i ip] [-pr port] [-np newpsword] [-des description] [-doc documentaion]",
 
 			Flags: []cli.Flag{
 				&cli.StringFlag{
-					Name:        "name",
+					Name:        "name, n",
 					Value:       "",
 					Usage:       "New Agent name",
 					Destination: &name,
 				},
 				&cli.StringFlag{
-					Name:        "password",
+					Name:        "password, pass, p",
 					Value:       "",
 					Usage:       "Password that gives access to an agent",
 					Destination: &password,
 				},
 				&cli.StringFlag{
-					Name:        "ip",
+					Name:        "ip, i",
 					Value:       "",
 					Usage:       "New Agent ip",
 					Destination: &ip,
 				},
 				&cli.StringFlag{
-					Name:        "port",
+					Name:        "port, pr",
 					Value:       "",
 					Usage:       "New Agent port",
 					Destination: &port,
 				},
 				&cli.StringFlag{
-					Name:        "new-password",
+					Name:        "new-password, np",
 					Value:       "",
 					Usage:       "New Password that gives access to an agent",
 					Destination: &newpassword,
 				},
 				&cli.StringFlag{
-					Name:        "description",
+					Name:        "description, des",
 					Value:       "",
 					Usage:       "New Agent description",
 					Destination: &description,
@@ -236,7 +239,7 @@ func Commnads() {
 			},
 
 			Action: func(c *cli.Context) error {
-				fmt.Println(name, password, ip, port, newpassword, description, doc)
+				LoadConfig(conf)
 				err_valid := update_validation()
 				if err_valid != nil {
 					return err_valid

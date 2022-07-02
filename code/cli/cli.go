@@ -1,7 +1,7 @@
 package main
 
 import (
-	client "agent_platform_client/ap-client"
+	client "client/ap_client"
 	"log"
 	"os"
 	"sort"

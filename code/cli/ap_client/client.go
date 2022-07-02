@@ -18,8 +18,9 @@ func setURL(newURL string) {
 	url = newURL
 }
 
-func LoadConfig() {
-	readFile, err := os.Open("ap_client/config.cfg")
+func LoadConfig(path string) {
+    
+	readFile, err := os.Open(path)
 	if err != nil {
 		log.Fatal(err)
 		return
