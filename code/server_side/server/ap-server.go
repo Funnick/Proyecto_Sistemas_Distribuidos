@@ -1,13 +1,15 @@
 package server
 
 import (
+	"crypto/sha1"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
+	"server/chord"
+
 	"github.com/gorilla/mux"
-	"github.com/manuelAW99/chord"
 )
 
 type Platform struct {
@@ -56,7 +58,7 @@ func (pl *Platform) CreateNewAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	var endpoint Address = Address{IP: requestMessage.IP, Port: requestMessage.Port}
 
-	var agent Agent = Agent{Name: requestMessage.Name, EndPoint: &endpoint,
+	var agent Agent = Agent{Name: requestMessage.Name, EndPoint: endpoint,
 		Password: requestMessage.Password, Description: requestMessage.Description,
 		Documentation: requestMessage.Documentation}
 
@@ -65,7 +67,7 @@ func (pl *Platform) CreateNewAgent(w http.ResponseWriter, r *http.Request) {
 		log.Println(err.Error())
 	}
 
-	err = pl.node.Set(agent.Name, agentCode)
+	err = pl.node.Set(agent.Name, agent.Description, agentCode)
 	if err != nil {
 		log.Println(err.Error())
 		responseMessage := ResponseMessage{Message: err.Error()}
@@ -161,19 +163,19 @@ func (pl *Platform) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(responseMessage)
 		return
 	}
-	if requestMessage.NewDescription != agentF.Description {
+	if requestMessage.NewDescription != agentF.Description && requestMessage.NewDescription != "" {
 		agentF.Description = requestMessage.NewDescription
 	}
-	if requestMessage.NewDocumentation != agentF.Documentation {
+	if requestMessage.NewDocumentation != agentF.Documentation && requestMessage.NewDocumentation != "" {
 		agentF.Documentation = requestMessage.NewDocumentation
 	}
-	if requestMessage.NewIP != agentF.EndPoint.IP {
+	if requestMessage.NewIP != agentF.EndPoint.IP && requestMessage.NewIP != "" {
 		agentF.EndPoint.IP = requestMessage.NewIP
 	}
-	if requestMessage.NewPort != agentF.EndPoint.Port {
+	if requestMessage.NewPort != agentF.EndPoint.Port && requestMessage.NewPort != "" {
 		agentF.EndPoint.Port = requestMessage.NewPort
 	}
-	if requestMessage.NewPassword != agentF.Password {
+	if requestMessage.NewPassword != agentF.Password && requestMessage.NewPassword != "" {
 		agentF.Password = requestMessage.NewPassword
 	}
 
@@ -225,23 +227,27 @@ func (pl *Platform) SearchByName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var responseMessage SearchAgentMessageResponse
-	agentsFound, err := pl.node.GetByName(requestMessage.Criteria)
+	fmt.Println(requestMessage.Name)
+	agentsFound, err := pl.node.GetByName(requestMessage.Name)
 	if err != nil {
 		fmt.Println(err.Error())
-	}
-	var agent Agent
-	json.Unmarshal(agentsFound, &agent)
-	if len(agentsFound) > 0 {
-		responseMessage.Message = "These services were found"
-		responseMessage.AgentFound = agent
+		responseMessage.Message = "There is no agent with that name"
 		json.NewEncoder(w).Encode(responseMessage)
 		return
 	}
-	responseMessage.Message = "There is no agent with that description"
+	var agent Agent
+	json.Unmarshal(agentsFound, &agent)
+	responseMessage.Message = ""
+	responseMessage.AgentFound = agent
 	json.NewEncoder(w).Encode(responseMessage)
 }
 
-func (pl *Platform) Run() {
+func (pl *Platform) Run(port string) {
+	h := sha1.New()
+	h.Write([]byte(pl.endpoint.IP + ":" + port))
+	val := h.Sum(nil)
+	info := chord.NodeInfo{NodeID: val, EndPoint: chord.Address{IP: pl.endpoint.IP, Port: port}}
+	pl.node = chord.NewNode(info, chord.DefaultConfig(), nil, "pepeDB")
 	err := http.ListenAndServe(pl.endpoint.IP+":"+pl.endpoint.Port, &pl.router)
 	if err != nil {
 		fmt.Println(err.Error())

@@ -7,7 +7,7 @@ import (
 type DBChord interface {
 	GetByName(string) ([]byte, error)
 	//GetByFun(string) ([]string, error)
-	Set(string, []byte) error
+	Set(string, string, []byte) error
 	Update(string, []byte) error
 	Delete(string, string) error
 }
@@ -51,9 +51,14 @@ func setNames(agentNames []byte, name string) ([]byte, error) {
 
 func setFunctions(agentsFun []byte, fun string, name string) ([]byte, error) {
 	var af map[string]string
-	err := json.Unmarshal(agentsFun, &af)
-	if err != nil {
-		return nil, err
+
+	if len(agentsFun) == 0 {
+		af = make(map[string]string, 1)
+	} else {
+		err := json.Unmarshal(agentsFun, &af)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// kmp
@@ -112,6 +117,7 @@ func (n *Node) Set(name string, fun string, data []byte) error {
 	if err != nil {
 		return err
 	}
+
 	// Guarda el agente en el DHT
 	key, err = n.getHashKey(name)
 	nInfo = n.findSuccessorOfKey(key)

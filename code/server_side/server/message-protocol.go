@@ -20,7 +20,7 @@ type DeleteAgentMessage struct {
 }
 
 type SearchAgentMessage struct {
-	Criteria string `json:"criteria"`
+	Name string `json:"name"`
 }
 
 type SearchAgentMessageResponse struct {

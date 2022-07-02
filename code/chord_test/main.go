@@ -1,8 +1,8 @@
-package main
+package chord_test
 
 import (
-	"dht/chord"
 	"os"
+	"server/chord"
 )
 
 func main() {

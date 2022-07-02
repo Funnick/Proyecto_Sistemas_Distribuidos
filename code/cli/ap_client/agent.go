@@ -1,4 +1,4 @@
-package server
+package ap_client
 
 type Address struct {
 	IP   string `json:"ip"`
