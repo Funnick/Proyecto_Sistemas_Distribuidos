@@ -3,7 +3,6 @@ package chord
 import (
 	"bytes"
 	"fmt"
-	"net"
 	"sync"
 	"time"
 )
@@ -32,8 +31,6 @@ type Node struct {
 
 	stopCh chan struct{}
 
-	l net.Listener
-
 	next int
 }
 
@@ -50,8 +47,7 @@ func NewNode(info NodeInfo, cnf *Config, knowNode *NodeInfo, dbName string) *Nod
 
 	node.Join(knowNode)
 
-	RegisterNodeOnRPCServer(node)
-	node.l = RunRPCServer(node.Info.EndPoint)
+	RunServer(NewRPCServer(node), node.Info.EndPoint, node.stopCh)
 
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
@@ -79,22 +75,19 @@ func NewNode(info NodeInfo, cnf *Config, knowNode *NodeInfo, dbName string) *Nod
 		}
 	}()
 
-	/*
-		go func() {
-			ticker := time.NewTicker(100 * time.Millisecond)
-			for {
-				select {
-				case <-ticker.C:
-					node.fixFingers()
-				case <-node.stopCh:
-					ticker.Stop()
-					return
-				}
+	go func() {
+		ticker := time.NewTicker(500 * time.Millisecond)
+		for {
+			select {
+			case <-ticker.C:
+				node.fixFingers()
+			case <-node.stopCh:
+				ticker.Stop()
+				return
 			}
-		}()
+		}
+	}()
 
-
-	*/
 	go func() {
 		ticker := time.NewTicker(7 * time.Second)
 		for {
@@ -141,7 +134,6 @@ func (n *Node) Join(knowNode *NodeInfo) error {
 		var err error
 		succ, err = n.GetSuccessorOfKey(knowNode.EndPoint, n.Info.NodeID)
 		if err != nil {
-			fmt.Println(err.Error())
 			return nil
 		}
 	}
@@ -153,7 +145,6 @@ func (n *Node) Join(knowNode *NodeInfo) error {
 // Stop
 func (n *Node) Stop() {
 	close(n.stopCh)
-	n.l.Close()
 }
 
 // Node privete methods
@@ -171,12 +162,14 @@ func (n *Node) findSuccessorOfKey(key []byte) *NodeInfo {
 	if bytes.Equal(n.Info.NodeID, cpn.NodeID) {
 		n.succMutex.RLock()
 		defer n.succMutex.RUnlock()
-		return n.succInfo
+		result := &NodeInfo{}
+		result.NodeID = n.succInfo.NodeID
+		result.EndPoint = n.succInfo.EndPoint
+		return result
 	}
 
 	succOfKey, err := n.GetSuccessorOfKey(cpn.EndPoint, key)
 	if err != nil {
-		fmt.Println(err.Error())
 		return nil
 	}
 	return succOfKey
@@ -202,7 +195,10 @@ func (n *Node) closestPredecedingNode(key []byte) *NodeInfo {
 		}
 	}
 
-	return &current
+	result := &NodeInfo{}
+	result.NodeID = current.NodeID
+	result.EndPoint = current.EndPoint
+	return result
 }
 
 // get successor of n
@@ -275,11 +271,6 @@ func (n *Node) setPosFT(pos int, node NodeInfo) {
 
 // Stabilize
 func (n *Node) stabilize() {
-	/*
-		fmt.Println("succ:", n.getSuccessor())
-		fmt.Println("pred:", n.getPredecessor())
-		fmt.Println()
-	*/
 	succ := n.getSuccessor()
 
 	if succ == nil {
@@ -350,6 +341,9 @@ func (n *Node) fixFingers() {
 
 	key := calculateFingerEntryID(n.Info.NodeID, n.next, n.cnf.HashSize)
 	nodeInfo := n.findSuccessorOfKey(key)
+	if nodeInfo == nil {
+		return
+	}
 	var node NodeInfo = NodeInfo{NodeID: nodeInfo.NodeID, EndPoint: nodeInfo.EndPoint}
 	n.setPosFT(n.next, node)
 }
@@ -407,16 +401,16 @@ func (n *Node) Ping(addr Address) bool {
 }
 
 // Storage Methods
-func (n *Node) AskForAKey(addr Address, key []byte) (string, error) {
+func (n *Node) AskForAKey(addr Address, key []byte) ([]byte, error) {
 	data, err := askForAKey(addr, key)
 	if err != nil {
 		fmt.Println(err.Error())
-		return "", err
+		return nil, err
 	}
 	return data, nil
 }
 
-func (n *Node) SendSet(addr Address, key []byte, data string) error {
+func (n *Node) SendSet(addr Address, key []byte, data []byte) error {
 	err := sendSet(addr, key, data)
 	if err != nil {
 		fmt.Println(err.Error())
