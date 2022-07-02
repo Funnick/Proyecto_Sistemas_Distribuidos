@@ -9,7 +9,7 @@ type DBChord interface {
 	//GetByFun(string) ([]string, error)
 	Set(string, []byte) error
 	Update(string, []byte) error
-	Delete(string) error
+	Delete(string, string) error
 }
 
 const (
@@ -109,6 +109,9 @@ func (n *Node) Set(name string, fun string, data []byte) error {
 	}
 
 	err = n.SendSet(nInfo.EndPoint, key, d)
+	if err != nil {
+		return err
+	}
 	// Guarda el agente en el DHT
 	key, err = n.getHashKey(name)
 	nInfo = n.findSuccessorOfKey(key)
@@ -167,6 +170,9 @@ func deleteFun(agentsFun []byte, fun string) ([]byte, error) {
 // Falta arreglar error de no tener el Names o Fun
 func (n *Node) Delete(name string, fun string) error {
 	key, err := n.getHashKey(Names)
+	if err != nil {
+		return err
+	}
 	nInfo := n.findSuccessorOfKey(key)
 	agentNames, err := n.AskForAKey(nInfo.EndPoint, key)
 	if err != nil {
@@ -186,6 +192,9 @@ func (n *Node) Delete(name string, fun string) error {
 	}
 
 	key, err = n.getHashKey(Funs)
+	if err != nil {
+		return err
+	}
 	agentsFun, err := n.AskForAKey(nInfo.EndPoint, key)
 	if err != nil {
 		return err

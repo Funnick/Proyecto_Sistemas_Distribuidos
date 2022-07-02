@@ -1,4 +1,4 @@
-github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumCAMpl/TFQ4/5kLM=
-github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/gorilla/mux v1.8.0 h1:i40aqfkR1h2SlN9hojwV5ZA91wcXFOvkdNIeFDP5koI=
 github.com/gorilla/mux v1.8.0/go.mod h1:DVbg23sWSpFRCP0SfiEN6jmj59UnW/n46BH5rLB71So=
+github.com/manuelAW99/chord v0.0.0-20220702033921-56460e3aebee h1:NVgOzlj5kE8rok49y7ZX2wUs4ac/W9sLZ6hdlGuV1Gg=
+github.com/manuelAW99/chord v0.0.0-20220702033921-56460e3aebee/go.mod h1:0xJsfVNuQqV9TPGhzmZTtrTIKk+Ff886Cu7aqvgH8+4=

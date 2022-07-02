@@ -7,27 +7,30 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/manuelAW99/chord"
 )
 
 type Platform struct {
 	endpoint Address
 	router   mux.Router
-	node     DataBasePlatform
+	// Aquí creo que debería ir un chord.Node
+	node chord.DBChord // ir a la línea 26
 }
 
 func NewPlatform(ip, port string) *Platform {
 	endpoint := Address{IP: ip, Port: port}
+
 	pl := &Platform{
 		endpoint: endpoint,
 		router:   *mux.NewRouter(),
-		node:     nil,
+		node:     nil, // Aquí entonces habría que inicializar el nodo y eso no sé cómo hacerlo
 	}
 
 	pl.router.HandleFunc("/ap/agents", pl.GetAgents).Methods(http.MethodGet)
 	pl.router.HandleFunc("/ap/create", pl.CreateNewAgent).Methods(http.MethodPost)
 	pl.router.HandleFunc("/ap/delete", pl.DeleteAgent).Methods(http.MethodDelete)
 	pl.router.HandleFunc("/ap/searchbyname", pl.SearchByName).Methods(http.MethodGet)
-	pl.router.HandleFunc("/ap/searchbyfunc", pl.SearchByFunc).Methods(http.MethodGet)
+	//pl.router.HandleFunc("/ap/searchbyfunc", pl.SearchByFunc).Methods(http.MethodGet)
 	pl.router.HandleFunc("/ap/update", pl.UpdateAgent).Methods(http.MethodPut)
 
 	return pl
@@ -62,7 +65,7 @@ func (pl *Platform) CreateNewAgent(w http.ResponseWriter, r *http.Request) {
 		log.Println(err.Error())
 	}
 
-	err = pl.node.Set(agentCode, agent.Name)
+	err = pl.node.Set(agent.Name, agentCode)
 	if err != nil {
 		log.Println(err.Error())
 		responseMessage := ResponseMessage{Message: err.Error()}
@@ -83,7 +86,7 @@ func (pl *Platform) DeleteAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var responseMessage ResponseMessage
-	name, err := json.Marshal(requestMessage.Name)
+	name := requestMessage.Name
 	if err != nil {
 		log.Println(err.Error())
 		return
@@ -109,7 +112,7 @@ func (pl *Platform) DeleteAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	desc, err := json.Marshal(requestMessage.Description)
+	desc := requestMessage.Description
 	if err != nil {
 		log.Println(err.Error())
 		return
@@ -138,12 +141,7 @@ func (pl *Platform) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 	//TODO todo esto
 	var responseMessage ResponseMessage
 
-	name, err := json.Marshal(requestMessage.Name)
-	if err != nil {
-		log.Println(err.Error())
-		return
-	}
-
+	name := requestMessage.Name
 	agent, err := pl.node.GetByName(name)
 	if err != nil {
 		log.Println(err.Error())
@@ -185,7 +183,7 @@ func (pl *Platform) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 		log.Println(err.Error())
 		return
 	}
-	err = pl.node.Update(newAgent)
+	err = pl.node.Update(agentF.Name, newAgent)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -194,7 +192,7 @@ func (pl *Platform) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 }
 
 // Search an agent by functionality
-func (pl *Platform) SearchByFunc(w http.ResponseWriter, r *http.Request) {
+/*func (pl *Platform) SearchByFunc(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var requestMessage SearchAgentMessage
 	err := json.NewDecoder(r.Body).Decode(&requestMessage)
@@ -216,7 +214,7 @@ func (pl *Platform) SearchByFunc(w http.ResponseWriter, r *http.Request) {
 	}
 	responseMessage.Message = "There is no agent with that description"
 	json.NewEncoder(w).Encode(responseMessage)
-}
+}*/
 
 func (pl *Platform) SearchByName(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -227,13 +225,15 @@ func (pl *Platform) SearchByName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var responseMessage SearchAgentMessageResponse
-	agentsFound, err := pl.node.GetByName(requestMessage.Description)
+	agentsFound, err := pl.node.GetByName(requestMessage.Criteria)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+	var agent Agent
+	json.Unmarshal(agentsFound, &agent)
 	if len(agentsFound) > 0 {
 		responseMessage.Message = "These services were found"
-		responseMessage.AgentFound = agentsFound
+		responseMessage.AgentFound = agent
 		json.NewEncoder(w).Encode(responseMessage)
 		return
 	}
