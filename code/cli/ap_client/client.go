@@ -170,6 +170,46 @@ func SearchAgentNameRequest(name string) (resp string, agent Agent) {
 	return "OK", responseMessage.AgentsFound
 }
 
+func SearchAgentDescRequest(description string) (resp string, agent Agent) {
+	client := http.Client{Timeout: 10 * time.Second}
+	var requestMessage SearchAgentDescMessage = SearchAgentDescMessage{
+		Description: description,
+	}
+	jsonRequestMessage, err := json.Marshal(requestMessage)
+	if err != nil {
+		log.Fatal(err)
+		return err.Error(), Agent{}
+	}
+	request, err := http.NewRequest(http.MethodGet, url+"/searchbydesc",
+		bytes.NewBuffer(jsonRequestMessage))
+	if err != nil {
+		log.Fatal(err)
+		return err.Error(), Agent{}
+	}
+	request.Header.Add("Accept", "application/json")
+	response, err := client.Do(request)
+	if err != nil {
+		log.Fatal(err)
+		return err.Error(), Agent{}
+	}
+	defer response.Body.Close()
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Fatal(err)
+		return err.Error(), Agent{}
+	}
+	var responseMessage SearchAgentMessageResponse
+	err = json.Unmarshal(body, &responseMessage)
+	if err != nil {
+		log.Fatal(err)
+		return err.Error(), Agent{}
+	}
+	if len(responseMessage.Message) > 0 {
+		return responseMessage.Message, Agent{}
+	}
+	return "OK", responseMessage.AgentsFound
+}
+
 func UpdateAgentRequest(name, password, newIP, newPort,
 	newPassword, newDescription, newDocumentation string) (resp string) {
 	client := http.Client{Timeout: 10 * time.Second}

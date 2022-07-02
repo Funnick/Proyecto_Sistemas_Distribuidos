@@ -24,7 +24,7 @@ type SearchAgentNameMessage struct {
 }
 
 type SearchAgentDescMessage struct {
-	Name string `json:"name"`
+	Description string `json:"description"`
 }
 
 type SearchAgentMessageResponse struct {
