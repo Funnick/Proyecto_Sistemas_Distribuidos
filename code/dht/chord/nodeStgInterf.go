@@ -49,18 +49,17 @@ func setNames(agentNames []byte, name string) ([]byte, error) {
 	return json.Marshal(an)
 }
 
-// Hacer
-func setFunctions(agentsFun []byte, fun string) ([]byte, error) {
-	var af map[string][]string
+func setFunctions(agentsFun []byte, fun string, name string) ([]byte, error) {
+	var af map[string]string
 	err := json.Unmarshal(agentsFun, &af)
 	if err != nil {
 		return nil, err
 	}
 
 	// kmp
+	af[fun] = name
 
-	// Cambiar
-	return nil, nil
+	return json.Marshal(af)
 }
 
 func (n *Node) Set(name string, fun string, data []byte) error {
@@ -88,29 +87,28 @@ func (n *Node) Set(name string, fun string, data []byte) error {
 	if err != nil {
 		return err
 	}
-	/*
-		// Actualiza el diccionario funcion-agentes
-		key, err = n.getHashKey(Funs)
-		if err != nil {
-			return err
-		}
-		nInfo = n.findSuccessorOfKey(key)
-		functionsAgents, err := n.AskForAKey(nInfo.EndPoint, key)
-		if err != nil && err.Error() != "There is no agent with that name" {
-			return err
-		}
-		if err != nil {
-			functionsAgents = make([]byte, 0)
-		} else {
-			n.SendDelete(nInfo.EndPoint, key)
-		}
-		d, err = setFunctions(functionsAgents, fun)
-		if err != nil {
-			return err
-		}
 
-		err = n.SendSet(nInfo.EndPoint, key, d)
-	*/
+	// Actualiza el diccionario funcion-agentes
+	key, err = n.getHashKey(Funs)
+	if err != nil {
+		return err
+	}
+	nInfo = n.findSuccessorOfKey(key)
+	functionsAgents, err := n.AskForAKey(nInfo.EndPoint, key)
+	if err != nil && err.Error() != "There is no agent with that name" {
+		return err
+	}
+	if err != nil {
+		functionsAgents = make([]byte, 0)
+	} else {
+		n.SendDelete(nInfo.EndPoint, key)
+	}
+	d, err = setFunctions(functionsAgents, fun, name)
+	if err != nil {
+		return err
+	}
+
+	err = n.SendSet(nInfo.EndPoint, key, d)
 	// Guarda el agente en el DHT
 	key, err = n.getHashKey(name)
 	nInfo = n.findSuccessorOfKey(key)
@@ -121,6 +119,7 @@ func (n *Node) Set(name string, fun string, data []byte) error {
 	return n.SendSet(nInfo.EndPoint, key, data)
 }
 
+// Arreglar
 func (n *Node) Update(name string, data []byte) error {
 	key, err := n.getHashKey(name)
 	if err != nil {
@@ -152,7 +151,21 @@ func deleteAgentName(agentNames []byte, name string) ([]byte, error) {
 	return json.Marshal(an)
 }
 
-func (n *Node) Delete(name string) error {
+func deleteFun(agentsFun []byte, fun string) ([]byte, error) {
+	var af map[string]string
+	err := json.Unmarshal(agentsFun, &af)
+	if err != nil {
+		return nil, err
+	}
+
+	// kmp
+	delete(af, fun)
+
+	return json.Marshal(af)
+}
+
+// Falta arreglar error de no tener el Names o Fun
+func (n *Node) Delete(name string, fun string) error {
 	key, err := n.getHashKey(Names)
 	nInfo := n.findSuccessorOfKey(key)
 	agentNames, err := n.AskForAKey(nInfo.EndPoint, key)
@@ -172,7 +185,23 @@ func (n *Node) Delete(name string) error {
 		return err
 	}
 
-	// Falta arreglar las funciones
+	key, err = n.getHashKey(Funs)
+	agentsFun, err := n.AskForAKey(nInfo.EndPoint, key)
+	if err != nil {
+		return err
+	}
+	agentsFun, err = deleteFun(agentsFun, fun)
+	if err != nil {
+		return err
+	}
+	err = n.SendDelete(nInfo.EndPoint, key)
+	if err != nil {
+		return err
+	}
+	err = n.SendSet(nInfo.EndPoint, key, agentsFun)
+	if err != nil {
+		return err
+	}
 
 	key, err = n.getHashKey(name)
 	if err != nil {

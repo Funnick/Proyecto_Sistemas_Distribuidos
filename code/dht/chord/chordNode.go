@@ -3,7 +3,6 @@ package chord
 import (
 	"bytes"
 	"fmt"
-	"net"
 	"sync"
 	"time"
 )
@@ -32,8 +31,6 @@ type Node struct {
 
 	stopCh chan struct{}
 
-	l net.Listener
-
 	next int
 }
 
@@ -50,8 +47,7 @@ func NewNode(info NodeInfo, cnf *Config, knowNode *NodeInfo, dbName string) *Nod
 
 	node.Join(knowNode)
 
-	RegisterNodeOnRPCServer(node)
-	node.l = RunRPCServer(node.Info.EndPoint)
+	RunServer(NewRPCServer(node), node.Info.EndPoint, node.stopCh)
 
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
@@ -149,7 +145,6 @@ func (n *Node) Join(knowNode *NodeInfo) error {
 // Stop
 func (n *Node) Stop() {
 	close(n.stopCh)
-	n.l.Close()
 }
 
 // Node privete methods
@@ -276,11 +271,6 @@ func (n *Node) setPosFT(pos int, node NodeInfo) {
 
 // Stabilize
 func (n *Node) stabilize() {
-	/*
-		fmt.Println("succ:", n.getSuccessor())
-		fmt.Println("pred:", n.getPredecessor())
-		fmt.Println()
-	*/
 	succ := n.getSuccessor()
 
 	if succ == nil {

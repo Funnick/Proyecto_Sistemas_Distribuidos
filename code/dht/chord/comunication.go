@@ -3,7 +3,6 @@ package chord
 import (
 	"fmt"
 	"net"
-	"net/http"
 	"net/rpc"
 )
 
@@ -47,21 +46,41 @@ type Comunication interface {
 
 // Server logic for rpc
 
-// Register a service
-func RegisterNodeOnRPCServer(n *Node) {
-	rpc.Register(n)
+func NewRPCServer(n *Node) *rpc.Server {
+	s := rpc.NewServer()
+	if err := s.Register(n); err != nil {
+		panic(err.Error())
+	}
+
+	return s
 }
 
-// Run a http server
-func RunRPCServer(addr Address) net.Listener {
-	rpc.HandleHTTP()
+func RunServer(s *rpc.Server, addr Address, stopC chan struct{}) {
 	listener, err := net.Listen("tcp", getAddr(addr))
 	if err != nil {
-		fmt.Println(err.Error())
-		return nil
+		panic(err.Error())
 	}
-	go http.Serve(listener, nil)
-	return listener
+
+	go func() {
+		for {
+			select {
+			case <-stopC:
+				fmt.Println("Deteniendo servidor")
+				if err = listener.Close(); err != nil {
+					panic(err)
+				}
+				return
+			default:
+				conn, err := listener.Accept()
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+				go s.ServeConn(conn)
+			}
+		}
+	}()
+
 }
 
 // Exported rpc method for GetSuccessor
@@ -155,7 +174,7 @@ func (n *Node) DeleteResource(request *KeyRequest, response *EmptyResponse) erro
 // Connect the client with server at address addr
 // And calls GetSuccessor of node at address addr
 func getSuccessorOf(addr Address) (*NodeInfo, error) {
-	client, err := rpc.DialHTTP("tcp", getAddr(addr))
+	client, err := rpc.Dial("tcp", getAddr(addr))
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +194,7 @@ func getSuccessorOf(addr Address) (*NodeInfo, error) {
 }
 
 func getSuccessorOfKey(addr Address, key []byte) (*NodeInfo, error) {
-	client, err := rpc.DialHTTP("tcp", getAddr(addr))
+	client, err := rpc.Dial("tcp", getAddr(addr))
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +220,7 @@ func getSuccessorOfKey(addr Address, key []byte) (*NodeInfo, error) {
 
 // Ask the node at address addr for his predecessor
 func getPredecessorOf(addr Address) (*NodeInfo, error) {
-	client, err := rpc.DialHTTP("tcp", getAddr(addr))
+	client, err := rpc.Dial("tcp", getAddr(addr))
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +240,7 @@ func getPredecessorOf(addr Address) (*NodeInfo, error) {
 }
 
 func notifyNode(addr Address, n *NodeInfo) error {
-	client, err := rpc.DialHTTP("tcp", getAddr(addr))
+	client, err := rpc.Dial("tcp", getAddr(addr))
 	if err != nil {
 		return err
 	}
@@ -232,7 +251,7 @@ func notifyNode(addr Address, n *NodeInfo) error {
 }
 
 func ping(addr Address) error {
-	client, err := rpc.DialHTTP("tcp", getAddr(addr))
+	client, err := rpc.Dial("tcp", getAddr(addr))
 	if err != nil {
 		return PingResquestError{}
 	}
@@ -242,7 +261,7 @@ func ping(addr Address) error {
 }
 
 func askForAKey(addr Address, key []byte) ([]byte, error) {
-	client, err := rpc.DialHTTP("tcp", getAddr(addr))
+	client, err := rpc.Dial("tcp", getAddr(addr))
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +278,7 @@ func askForAKey(addr Address, key []byte) ([]byte, error) {
 }
 
 func sendSet(addr Address, key []byte, data []byte) error {
-	client, err := rpc.DialHTTP("tcp", getAddr(addr))
+	client, err := rpc.Dial("tcp", getAddr(addr))
 	if err != nil {
 		return err
 	}
@@ -269,7 +288,7 @@ func sendSet(addr Address, key []byte, data []byte) error {
 }
 
 func sendDelete(addr Address, key []byte) error {
-	client, err := rpc.DialHTTP("tcp", getAddr(addr))
+	client, err := rpc.Dial("tcp", getAddr(addr))
 	if err != nil {
 		return err
 	}
