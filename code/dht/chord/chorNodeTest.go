@@ -47,6 +47,7 @@ func StabilizeTest(ip, port, ipSucc, portSucc string) {
 	h.Write([]byte(ip + ":" + port))
 	val := h.Sum(nil)
 	info := NodeInfo{NodeID: val, EndPoint: Address{IP: ip, Port: port}}
+	var n *Node
 	var i *NodeInfo = nil
 	if ipSucc != "" {
 		h.Reset()
@@ -54,7 +55,7 @@ func StabilizeTest(ip, port, ipSucc, portSucc string) {
 		val = h.Sum(nil)
 		i = &NodeInfo{NodeID: val, EndPoint: Address{IP: ipSucc, Port: portSucc}}
 	}
-	n := NewNode(info, DefaultConfig(), i, getAddr(info.EndPoint))
+	n = NewNode(info, DefaultConfig(), i, getAddr(info.EndPoint))
 	time.Sleep(5 * time.Second)
 	d, err := json.Marshal("Set Pepe")
 	if err != nil {

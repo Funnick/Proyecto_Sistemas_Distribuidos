@@ -3,7 +3,6 @@ package chord
 import (
 	"bytes"
 	"log"
-	"net"
 	"sync"
 	"time"
 )
@@ -32,8 +31,6 @@ type Node struct {
 
 	stopCh chan struct{}
 
-	l net.Listener
-
 	next int
 }
 
@@ -50,8 +47,7 @@ func NewNode(info NodeInfo, cnf *Config, knowNode *NodeInfo, dbName string) *Nod
 
 	node.Join(knowNode)
 
-	RegisterNodeOnRPCServer(node)
-	node.l = RunRPCServer(node.Info.EndPoint)
+	RunServer(NewRPCServer(node), node.Info.EndPoint, node.stopCh)
 
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
@@ -80,7 +76,7 @@ func NewNode(info NodeInfo, cnf *Config, knowNode *NodeInfo, dbName string) *Nod
 	}()
 
 	go func() {
-		ticker := time.NewTicker(400 * time.Millisecond)
+		ticker := time.NewTicker(500 * time.Millisecond)
 		for {
 			select {
 			case <-ticker.C:
@@ -150,7 +146,6 @@ func (n *Node) Join(knowNode *NodeInfo) error {
 // Stop
 func (n *Node) Stop() {
 	close(n.stopCh)
-	n.l.Close()
 }
 
 // Node private methods
@@ -168,7 +163,10 @@ func (n *Node) findSuccessorOfKey(key []byte) *NodeInfo {
 	if bytes.Equal(n.Info.NodeID, cpn.NodeID) {
 		n.succMutex.RLock()
 		defer n.succMutex.RUnlock()
-		return n.succInfo
+		result := &NodeInfo{}
+		result.NodeID = n.succInfo.NodeID
+		result.EndPoint = n.succInfo.EndPoint
+		return result
 	}
 
 	succOfKey, err := n.GetSuccessorOfKey(cpn.EndPoint, key)
@@ -199,7 +197,10 @@ func (n *Node) closestPredecedingNode(key []byte) *NodeInfo {
 		}
 	}
 
-	return &current
+	result := &NodeInfo{}
+	result.NodeID = current.NodeID
+	result.EndPoint = current.EndPoint
+	return result
 }
 
 // get successor of n
@@ -272,11 +273,6 @@ func (n *Node) setPosFT(pos int, node NodeInfo) {
 
 // Stabilize
 func (n *Node) stabilize() {
-	/*
-		fmt.Println("succ:", n.getSuccessor())
-		fmt.Println("pred:", n.getPredecessor())
-		fmt.Println()
-	*/
 	succ := n.getSuccessor()
 
 	if succ == nil {
