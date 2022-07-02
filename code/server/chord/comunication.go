@@ -160,6 +160,10 @@ func (n *Node) SaveResource(request *DataKeyRequest, response *EmptyResponse) er
 	n.dbMutex.Lock()
 	defer n.dbMutex.Unlock()
 
+	// Replicacion
+	succ := n.getSuccessor()
+	n.SendSet(succ.EndPoint, request.Key, request.Data)
+
 	return n.db.Set(request.Key, request.Data)
 }
 
@@ -167,7 +171,18 @@ func (n *Node) DeleteResource(request *KeyRequest, response *EmptyResponse) erro
 	n.dbMutex.Lock()
 	defer n.dbMutex.Unlock()
 
+	// Replicacion
+	succ := n.getSuccessor()
+	n.SendDelete(succ.EndPoint, request.Key)
+
 	return n.db.Delete(request.Key)
+}
+
+func (n *Node) ReplicateResource(request *DataKeyRequest, response *EmptyResponse) error {
+	n.dbMutex.Lock()
+	defer n.dbMutex.Unlock()
+
+	return n.db.Set(request.Key, request.Data)
 }
 
 // Client logic for rpc
@@ -310,4 +325,14 @@ func sendDelete(addr Address, key []byte) error {
 	defer client.Close()
 
 	return client.Call("Node.DeleteResource", &KeyRequest{Key: key}, &EmptyResponse{})
+}
+
+func sendReplicate(addr Address, key, data []byte) error {
+	client, err := rpc.Dial("tcp", getAddr(addr))
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	return client.Call("Node.ReplicateResource", &DataKeyRequest{Key: key, Data: data}, &EmptyResponse{})
 }

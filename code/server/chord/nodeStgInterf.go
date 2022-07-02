@@ -18,6 +18,9 @@ const (
 )
 
 func (n *Node) GetByName(agentName string) ([]byte, error) {
+	n.dbMutex.RLock()
+	defer n.dbMutex.RUnlock()
+
 	key, err := n.getHashKey(agentName)
 	if err != nil {
 		return nil, err
@@ -68,6 +71,9 @@ func setFunctions(agentsFun []byte, fun string, name string) ([]byte, error) {
 }
 
 func (n *Node) Set(name string, fun string, data []byte) error {
+	n.dbMutex.Lock()
+	defer n.dbMutex.Unlock()
+
 	// Actualiza la lista de los nombres de los agentes
 	key, err := n.getHashKey(Names)
 	if err != nil {
@@ -130,6 +136,9 @@ func (n *Node) Set(name string, fun string, data []byte) error {
 
 // Arreglar
 func (n *Node) Update(name string, data []byte) error {
+	n.dbMutex.Lock()
+	defer n.dbMutex.Unlock()
+
 	key, err := n.getHashKey(name)
 	if err != nil {
 		return err
@@ -175,6 +184,9 @@ func deleteFun(agentsFun []byte, fun string) ([]byte, error) {
 
 // Falta arreglar error de no tener el Names o Fun
 func (n *Node) Delete(name string, fun string) error {
+	n.dbMutex.Lock()
+	defer n.dbMutex.Unlock()
+
 	key, err := n.getHashKey(Names)
 	if err != nil {
 		return err
