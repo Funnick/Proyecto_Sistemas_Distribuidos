@@ -20,7 +20,7 @@ Para crear un nuevo agente invocaremos el comando **create-agent** o su forma ab
 Ejemplos de uso del programa:
 
 ```shell
-go run cli.go C -ip 10.8.100.2 -port 444 -password contraseña -description lorem ipsum -doc documentation
+go run cli.go C -name Pepe -ip 10.8.100.2 -port 444 -password contraseña -description lorem ipsum -doc documentation
 ```
 
 ```shell
@@ -31,7 +31,7 @@ go run cli.go create-agent -doc documentation -password contraseña -port 444 -d
 
 ### Eliminar agentes
 
-Para eliminar un agente invocaremos el comando **delete-agent** o su forma abreviada **D**. Cuando se hace uso de este comando es necesario introducir los parametros que seran los que definiran el nuevo agente usando las opciones o flags siguientes, sin importar su orden:
+Para eliminar un agente invocaremos el comando **delete-agent** o su forma abreviada **D**. Cuando se hace uso de este comando es necesario introducir los parámetros que serán los que definirán el nuevo agente usando las opciones o flags siguientes, sin importar su orden:
 
 * **-name**, **-n** representa el id mediante el cual identificaremos el agente.
 
@@ -85,7 +85,7 @@ go run cli.go search-desc-agent lorem impsum
 
 ### Actualizar agentes
 
-Para actualizar los valores de un agente invocaremos el comando **update-agent** o su forma abreviada **U**. Cuando se hace uso de este comando es necesario introducir los parametros que seran los que definiran los nuevos valores del agente usando las opciones o *flags* siguientes, sin importar su orden:
+Para actualizar los valores de un agente invocaremos el comando **update-agent** o su forma abreviada **U**. Cuando se hace uso de este comando es necesario introducir los parámetros que serán los que definirán los nuevos valores del agente usando las opciones o *flags* siguientes, sin importar su orden:
 
 * **-name**, **-n** el nombre por cual accederemos al agente
 * **-password**, -**pass**, **-p** la contraseña para obtener acceso al agente

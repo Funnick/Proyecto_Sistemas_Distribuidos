@@ -8,7 +8,6 @@ import (
 )
 
 var conf string
-var aid string
 var password string
 var ip string
 var port string
@@ -134,7 +133,7 @@ func Commnads() {
 					Name:        "name, n",
 					Value:       "",
 					Usage:       "Agent name",
-					Destination: &aid,
+					Destination: &name,
 					Required:    true,
 				},
 				&cli.StringFlag{
@@ -185,8 +184,11 @@ func Commnads() {
 				LoadConfig(conf)
 				if c.NArg() > 0 {
 					description := strings.Join(c.Args(), " ")
-					resp, _ := SearchAgentNameRequest(description)
+					resp, agent := SearchAgentNameRequest(description)
 					fmt.Println(resp)
+					if resp != "There is no agent with that name" {
+						fmt.Println(agent.Print())
+					}
 					return nil
 				}
 				fmt.Println("Please insert a valid string to search")
@@ -284,7 +286,7 @@ func update_validation() error {
 }
 
 func create_validation() error {
-    
+
 	if name == "" {
 		return cli.NewExitError("Name error", 1)
 	}
@@ -308,7 +310,7 @@ func create_validation() error {
 
 func delete_validation() error {
 	if name == "" {
-		return cli.NewExitError("name error", 1)
+		return cli.NewExitError("Name error", 1)
 	}
 	if password == "" {
 		return cli.NewExitError("Password error", 1)
@@ -316,7 +318,7 @@ func delete_validation() error {
 	return nil
 }
 
-func AppInit(){
+func AppInit() {
 	Info()
 	Flags()
 	Commnads()
