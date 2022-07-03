@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"server/server_side/server"
 )
@@ -13,6 +14,7 @@ func main() {
 	portSucc := os.Args[5]
 	name := os.Args[6]
 
+	log.Println("Inicializando el servidor...")
 	pl := server.NewPlatform(ip, port)
 	pl.Run(port2, name, ipSucc, portSucc)
 

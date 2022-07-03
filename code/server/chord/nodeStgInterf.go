@@ -39,9 +39,9 @@ func (n *Node) GetAllFun() ([]byte, error) {
 	nInfo := n.findSuccessorOfKey(key)
 	agentsFun, err := n.AskForAKey(nInfo.EndPoint, key)
 	if err != nil {
-		log.Println(err)
+		log.Println(err.Error())
+		return nil, err
 	}
-
 	var af map[string]string
 
 	err = json.Unmarshal(agentsFun, &af)
@@ -145,7 +145,7 @@ func (n *Node) Set(name string, fun string, data []byte) error {
 	nInfo := n.findSuccessorOfKey(key)
 	var agentNames []byte
 	agentNames, err = n.AskForAKey(nInfo.EndPoint, key)
-	if err != nil && err.Error() != "There is no agent with that name" {
+	if err != nil && err.Error() != "Recurso no encontrado" {
 		return err
 	}
 	if err != nil {
@@ -169,7 +169,7 @@ func (n *Node) Set(name string, fun string, data []byte) error {
 	}
 	nInfo = n.findSuccessorOfKey(key)
 	functionsAgents, err := n.AskForAKey(nInfo.EndPoint, key)
-	if err != nil && err.Error() != "There is no agent with that name" {
+	if err != nil && err.Error() != "Recurso no encontrado" {
 		return err
 	}
 	if err != nil {
@@ -278,7 +278,7 @@ func (n *Node) Delete(name string, fun string) error {
 	}
 	nInfo := n.findSuccessorOfKey(key)
 	agentNames, err := n.AskForAKey(nInfo.EndPoint, key)
-	if err != nil && err.Error() != "There is no agent with that name" {
+	if err != nil && err.Error() != "Recurso no encontrado" {
 		return err
 	}
 	if err == nil {
@@ -301,7 +301,7 @@ func (n *Node) Delete(name string, fun string) error {
 		return err
 	}
 	agentsFun, err := n.AskForAKey(nInfo.EndPoint, key)
-	if err != nil && err.Error() != "There is no agent with that name" {
+	if err != nil && err.Error() != "Recurso no encontrado" {
 		return err
 	}
 	if err == nil {
