@@ -32,6 +32,11 @@ type SearchAgentMessageResponse struct {
 	Message    string `json:"message"`
 }
 
+type GetAllResponse struct {
+	ResponsesFound []string `json:"responses"`
+	Message        string   `json:"message"`
+}
+
 type UpdateAgentMessage struct {
 	Name             string `json:"name"`
 	Password         string `json:"password"`

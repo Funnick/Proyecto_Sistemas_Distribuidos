@@ -25,7 +25,8 @@ func NewPlatform(ip, port string) *Platform {
 		node:     nil,
 	}
 
-	pl.router.HandleFunc("/ap/agents", pl.GetAgents).Methods(http.MethodGet)
+	pl.router.HandleFunc("/ap/names", pl.GetAgentsNames).Methods(http.MethodGet)
+	pl.router.HandleFunc("/ap/descriptions", pl.GetAgentsDescs).Methods(http.MethodGet)
 	pl.router.HandleFunc("/ap/create", pl.CreateNewAgent).Methods(http.MethodPost)
 	pl.router.HandleFunc("/ap/delete", pl.DeleteAgent).Methods(http.MethodDelete)
 	pl.router.HandleFunc("/ap/searchbyname", pl.SearchByName).Methods(http.MethodGet)
@@ -35,13 +36,39 @@ func NewPlatform(ip, port string) *Platform {
 	return pl
 }
 
-// Mocket Agents
-var agents []Agent
-
 // Get all agents
-func (pl *Platform) GetAgents(w http.ResponseWriter, r *http.Request) {
+func (pl *Platform) GetAgentsNames(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(agents)
+	var responseMessage GetAllResponse
+	responseFound, err := pl.node.GetAllNames()
+	if err != nil {
+		log.Println(err.Error())
+		responseMessage.Message = "There is no agents"
+		json.NewEncoder(w).Encode(responseMessage)
+		return
+	}
+	var resp []string
+	json.Unmarshal(responseFound, &resp)
+	responseMessage.Message = ""
+	responseMessage.ResponsesFound = resp
+	json.NewEncoder(w).Encode(responseMessage)
+}
+
+func (pl *Platform) GetAgentsDescs(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	var responseMessage GetAllResponse
+	responseFound, err := pl.node.GetAllFun()
+	if err != nil {
+		log.Println(err.Error())
+		responseMessage.Message = "There is no agents"
+		json.NewEncoder(w).Encode(responseMessage)
+		return
+	}
+	var resp []string
+	json.Unmarshal(responseFound, &resp)
+	responseMessage.Message = ""
+	responseMessage.ResponsesFound = resp
+	json.NewEncoder(w).Encode(responseMessage)
 }
 
 // Create an agent
@@ -198,7 +225,7 @@ func (pl *Platform) SearchByDesc(w http.ResponseWriter, r *http.Request) {
 	}
 	var responseMessage SearchAgentMessageResponse
 	//functionality, err := json.Marshal(requestMessage.Criteria)
-	agentsFound, err := pl.node.GetByName(requestMessage.Description)
+	agentsFound, err := pl.node.GetByFun(requestMessage.Description)
 	if err != nil {
 		log.Println(err.Error())
 		responseMessage.Message = "There is no agent with that description"

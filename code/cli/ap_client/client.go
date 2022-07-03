@@ -41,26 +41,48 @@ func LoadConfig(path string) {
 }
 
 // Request all agent to the server
-func GetAgentsRequest() (resp string, agentList []Agent) {
+func GetAgentNamesRequest() (resp string, agentList []string) {
 	client := http.Client{Timeout: 10 * time.Second}
-	response, err := client.Get(url + "/agents")
+	response, err := client.Get(url + "/names")
 	if err != nil {
 		log.Println(err)
-		return err.Error(), []Agent{}
+		return err.Error(), []string{}
 	}
 	defer response.Body.Close()
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		log.Println(err)
-		return err.Error(), []Agent{}
+		return err.Error(), []string{}
 	}
-	var agentArr []Agent
-	err = json.Unmarshal(body, &agentArr)
+	var r GetAllResponse
+	err = json.Unmarshal(body, &r)
 	if err != nil {
 		log.Println(err)
-		return err.Error(), []Agent{}
+		return err.Error(), []string{}
 	}
-	return "", agentArr
+	return "", r.ResponsesFound
+}
+
+func GetAgentDescsRequest() (resp string, agentList []string) {
+	client := http.Client{Timeout: 10 * time.Second}
+	response, err := client.Get(url + "/descriptions")
+	if err != nil {
+		log.Println(err)
+		return err.Error(), []string{}
+	}
+	defer response.Body.Close()
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Println(err)
+		return err.Error(), []string{}
+	}
+	var r GetAllResponse
+	err = json.Unmarshal(body, &r)
+	if err != nil {
+		log.Println(err)
+		return err.Error(), []string{}
+	}
+	return "", r.ResponsesFound
 }
 
 // Create new agent
@@ -216,7 +238,7 @@ func SearchAgentDescRequest(description string) (resp string, agent Agent) {
 	if len(responseMessage.Message) > 0 {
 		return responseMessage.Message, Agent{}
 	}
-	return "\u2713", responseMessage.AgentsFound
+	return "\u2713 OK", responseMessage.AgentsFound
 }
 
 func UpdateAgentRequest(name, password, newIP, newPort,

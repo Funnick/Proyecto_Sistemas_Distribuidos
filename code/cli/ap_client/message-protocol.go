@@ -18,6 +18,11 @@ type DeleteAgentMessage struct {
 	Password string `json:"password"`
 }
 
+type GetAllResponse struct {
+	ResponsesFound []string `json:"responses"`
+	Message        string   `json:"message"`
+}
+
 type SearchAgentNameMessage struct {
 	Name string `json:"name"`
 }

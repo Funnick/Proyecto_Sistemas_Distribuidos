@@ -53,12 +53,23 @@ func Flags() {
 func Commnads() {
 	App.Commands = []cli.Command{
 		{
-			Name:    "get-all-agents",
-			Aliases: []string{"A"},
-			Usage:   "Request all agent to the server",
+			Name:    "get-agents-name",
+			Aliases: []string{"An"},
+			Usage:   "Request all agent names to the server",
 			Action: func(c *cli.Context) error {
 				LoadConfig(conf)
-				resp, agentList := GetAgentsRequest()
+				resp, agentList := GetAgentNamesRequest()
+				fmt.Println(resp, agentList)
+				return nil
+			},
+		},
+		{
+			Name:    "get-agents-desc",
+			Aliases: []string{"Ad"},
+			Usage:   "Request all agent description to the server",
+			Action: func(c *cli.Context) error {
+				LoadConfig(conf)
+				resp, agentList := GetAgentDescsRequest()
 				fmt.Println(resp, agentList)
 				return nil
 			},
@@ -167,8 +178,11 @@ func Commnads() {
 				LoadConfig(conf)
 				if c.NArg() > 0 {
 					description := strings.Join(c.Args(), " ")
-					resp, _ := SearchAgentDescRequest(description)
+					resp, agent := SearchAgentDescRequest(description)
 					fmt.Println(resp)
+					if resp != "There is no agent with that name" {
+						fmt.Println(agent.Print())
+					}
 					return nil
 				}
 				fmt.Println("Please insert a valid string to search")
