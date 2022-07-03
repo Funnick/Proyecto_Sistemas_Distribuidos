@@ -431,7 +431,7 @@ func (n *Node) Ping(addr Address) bool {
 func (n *Node) AskForAKey(addr Address, key []byte) ([]byte, error) {
 	data, err := askForAKey(addr, key)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err.Error(), "AFAK")
 		return nil, err
 	}
 	return data, nil
@@ -461,18 +461,31 @@ func (n *Node) SendDelete(addr Address, key []byte) error {
 	return err
 }
 
+func (n *Node) SendRepDel(addr Address, key []byte) error {
+	err := sendRepDel(addr, key)
+	if err != nil {
+		log.Println(err.Error())
+	}
+	return err
+}
+
 func (n *Node) ReplicateKey(addr Address) error {
+	fmt.Println("Obteniendo RLock")
 	n.dbMutex.RLock()
-	defer n.dbMutex.RUnlock()
+	fmt.Println("RLock obtenido")
 
 	log.Println(n.Info.EndPoint, "replicando al sucesor", addr)
 
 	rows, err := n.db.GetKeyData()
+	fmt.Println("Soltando RLock")
+	n.dbMutex.RUnlock()
+	fmt.Println("Suelto RLock")
 	if err != nil {
 		log.Println(err.Error())
 		return err
 	}
 
+	fmt.Println("repl succ rows len", len(rows))
 	for _, elem := range rows {
 		err = n.SendReplicate(addr, elem.Key, elem.Data)
 		if err != nil {
@@ -485,18 +498,24 @@ func (n *Node) ReplicateKey(addr Address) error {
 }
 
 func (n *Node) SendPredecessorKeys(addr Address, nID []byte) error {
+	fmt.Println("Obteniendo RLock")
 	n.dbMutex.RLock()
-	defer n.dbMutex.RUnlock()
+	fmt.Println("RLock obtenido")
+
+	rows, err := n.db.GetKeyData()
+	fmt.Println("Soltando RLock")
+	n.dbMutex.RUnlock()
+	fmt.Println("Suelto RLock")
 
 	pred := n.getPredecessor()
 	log.Println(n.Info.EndPoint, "replicando al predecesor", addr)
 
-	rows, err := n.db.GetKeyData()
 	if err != nil {
 		log.Println(err.Error())
 		return err
 	}
 
+	fmt.Println("repl pred rows len", len(rows))
 	if pred == nil {
 		for _, elem := range rows {
 			if bytes.Compare(elem.Key, nID) < 1 {
@@ -507,7 +526,10 @@ func (n *Node) SendPredecessorKeys(addr Address, nID []byte) error {
 	} else {
 		for _, elem := range rows {
 			if betweenRightInlcude(pred.NodeID, nID, elem.Key) {
-				n.SendReplicate(addr, elem.Key, elem.Data)
+				err := n.SendReplicate(addr, elem.Key, elem.Data)
+				if err != nil {
+					log.Println(err.Error())
+				}
 				fmt.Println("repl pred 2")
 			}
 		}
