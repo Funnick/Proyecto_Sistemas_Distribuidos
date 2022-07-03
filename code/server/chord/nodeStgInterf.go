@@ -198,7 +198,35 @@ func (n *Node) Set(name string, fun string, data []byte) error {
 }
 
 // Arreglar
-func (n *Node) Update(name, desc1, desc2 string, data []byte) error {
+func (n *Node) Update(name, oldFun, newFun string, data []byte) error {
+	if oldFun != newFun {
+		key, err := n.getHashKey(Funs)
+		if err != nil {
+			return err
+		}
+
+		nInfo := n.findSuccessorOfKey(key)
+		agentsFun, err := n.AskForAKey(nInfo.EndPoint, key)
+		if err != nil {
+			return err
+		}
+		agentsFun, err = setFunctions(agentsFun, newFun, name)
+		if err != nil {
+			return err
+		}
+		agentsFun, err = deleteFun(agentsFun, oldFun)
+		if err != nil {
+			return err
+		}
+		err = n.SendDelete(nInfo.EndPoint, key)
+		if err != nil {
+			return err
+		}
+		err = n.SendSet(nInfo.EndPoint, key, agentsFun)
+		if err != nil {
+			return err
+		}
+	}
 
 	key, err := n.getHashKey(name)
 	if err != nil {
