@@ -39,7 +39,8 @@ func (n *Node) GetAllFun() ([]byte, error) {
 	nInfo := n.findSuccessorOfKey(key)
 	agentsFun, err := n.AskForAKey(nInfo.EndPoint, key)
 	if err != nil {
-		log.Println(err)
+		log.Println(err.Error())
+		return nil, err
 	}
 
 	var af map[string]string
