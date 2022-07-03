@@ -11,11 +11,10 @@ func main() {
 	port := os.Args[2]
 	port2 := os.Args[3]
 	ipSucc := os.Args[4]
-	portSucc := os.Args[5]
-	name := os.Args[6]
+	name := os.Args[5]
 
 	log.Println("Inicializando el servidor...")
 	pl := server.NewPlatform(ip, port)
-	pl.Run(port2, name, ipSucc, portSucc)
+	pl.Run(port2, name, ipSucc)
 
 }

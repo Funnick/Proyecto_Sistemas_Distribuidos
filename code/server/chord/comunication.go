@@ -46,6 +46,36 @@ type Comunication interface {
 	AskForAKey(Address, []byte) (string, error)
 }
 
+// Server LisentBroadcast
+func NewBroadcastServer(ip string, stopC chan struct{}) error {
+	listener, err := net.Listen("tcp", ip+":"+"6002")
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for {
+			select {
+			case <-stopC:
+				log.Println("Deteniendo servidor")
+				if err = listener.Close(); err != nil {
+					panic(err)
+				}
+				return
+			default:
+				conn, err := listener.Accept()
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+				conn.Close()
+			}
+		}
+	}()
+
+	return nil
+}
+
 // Server logic for rpc
 
 func NewRPCServer(n *Node) *rpc.Server {

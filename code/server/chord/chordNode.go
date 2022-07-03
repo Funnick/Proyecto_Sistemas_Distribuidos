@@ -65,6 +65,8 @@ func NewNode(ip, port, dbName, knowIP, knowPort string, cnf *Config) *Node {
 
 	RunServer(NewRPCServer(node), node.Info.EndPoint, node.stopCh)
 
+	NewBroadcastServer(node.Info.EndPoint.IP, node.stopCh)
+
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		for {

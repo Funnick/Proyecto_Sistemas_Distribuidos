@@ -3,7 +3,10 @@ package server
 import (
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"server/chord"
 
@@ -257,8 +260,29 @@ func (pl *Platform) SearchByName(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(responseMessage)
 }
 
-func (pl *Platform) Run(port, nameDB, knowIP, knowPort string) {
-	pl.node = chord.NewNode(pl.endpoint.IP, port, nameDB, knowIP, knowPort, chord.DefaultConfig())
+func (pl *Platform) Run(port, nameDB, knowIP string) {
+	if knowIP == "" {
+		ip := pl.endpoint.IP
+		ipSplit := strings.Split(ip, ".")[:3]
+		var subnet string
+		for _, value := range ipSplit {
+			subnet += value + "."
+		}
+		for i := 1; i < 255; i++ {
+			tryIP := subnet + strconv.Itoa(i)
+			client, err := net.Dial("tcp", tryIP+":6002")
+			if err != nil {
+				continue
+			}
+			client.Close()
+
+			knowIP = tryIP
+
+			break
+		}
+	}
+
+	pl.node = chord.NewNode(pl.endpoint.IP, port, nameDB, knowIP, "6001", chord.DefaultConfig())
 	err := http.ListenAndServe(pl.endpoint.IP+":"+pl.endpoint.Port, &pl.router)
 	if err != nil {
 		log.Println(err.Error())
