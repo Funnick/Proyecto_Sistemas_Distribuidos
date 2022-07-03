@@ -3,6 +3,7 @@ package chord
 import (
 	"bytes"
 	"crypto/sha1"
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -475,6 +476,7 @@ func (n *Node) ReplicateKey(addr Address) error {
 	for _, elem := range rows {
 		err = n.SendReplicate(addr, elem.Key, elem.Data)
 		if err != nil {
+			fmt.Println("repl succ")
 			log.Println(err.Error())
 		}
 	}
@@ -499,12 +501,14 @@ func (n *Node) SendPredecessorKeys(addr Address, nID []byte) error {
 		for _, elem := range rows {
 			if bytes.Compare(elem.Key, nID) < 1 {
 				n.SendReplicate(addr, elem.Key, elem.Data)
+				fmt.Println("repl pred 1")
 			}
 		}
 	} else {
 		for _, elem := range rows {
 			if betweenRightInlcude(pred.NodeID, nID, elem.Key) {
 				n.SendReplicate(addr, elem.Key, elem.Data)
+				fmt.Println("repl pred 2")
 			}
 		}
 	}
