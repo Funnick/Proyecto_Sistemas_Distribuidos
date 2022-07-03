@@ -2,8 +2,9 @@ package ap_client
 
 import (
 	"fmt"
-	"github.com/urfave/cli"
 	"strings"
+
+	"github.com/urfave/cli"
 )
 
 var conf string
@@ -42,7 +43,7 @@ func Flags() {
 	App.Flags = []cli.Flag{
 		&cli.StringFlag{
 			Name:        "config, c",
-			Value:       "./ap-client/config.cfg",
+			Value:       "./ap_client/config.cfg",
 			Usage:       "Load configuration from `FILE`",
 			Destination: &conf,
 		},
