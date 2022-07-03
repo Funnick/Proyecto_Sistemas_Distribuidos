@@ -31,7 +31,7 @@ type DataResponse struct {
 type PingResquestError struct{}
 
 func (p PingResquestError) Error() string {
-	return "server off"
+	return "Server Off"
 }
 
 // Interface for comunication between
@@ -67,7 +67,7 @@ func RunServer(s *rpc.Server, addr Address, stopC chan struct{}) {
 		for {
 			select {
 			case <-stopC:
-				fmt.Println("Deteniendo servidor")
+				log.Println("Stop server")
 				if err = listener.Close(); err != nil {
 					panic(err)
 				}
@@ -235,12 +235,12 @@ func getSuccessorOfKey(addr Address, key []byte) (*NodeInfo, error) {
 	}
 
 	if response.IsNil {
-		log.Println("Response is Nil")
+		log.Println("Response is nil")
 		return nil, nil
 	}
 
 	if response.NInfo == nil {
-		fmt.Println("response nil")
+		log.Println("Response is nil")
 		return nil, nil
 	}
 
@@ -296,7 +296,6 @@ func ping(addr Address) error {
 
 func askForAKey(addr Address, key []byte) ([]byte, error) {
 	client, err := rpc.Dial("tcp", getAddr(addr))
-	fmt.Println("Dial ok")
 	if err != nil {
 		return nil, err
 	}
@@ -304,7 +303,6 @@ func askForAKey(addr Address, key []byte) ([]byte, error) {
 
 	var response *DataResponse = &DataResponse{}
 	err = client.Call("Node.GetResource", &KeyRequest{Key: key}, response)
-	fmt.Println("Call ok")
 	if err != nil {
 		return nil, err
 	}
