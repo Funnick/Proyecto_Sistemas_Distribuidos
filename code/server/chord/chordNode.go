@@ -498,17 +498,6 @@ func (n *Node) ReplicateKey(addr Address) error {
 }
 
 func (n *Node) SendPredecessorKeys(addr Address, nID []byte) error {
-<<<<<<< HEAD
-	log.Println("Obteniendo RLock")
-	n.dbMutex.RLock()
-	log.Println("Obtenido RLock")
-	rows, err := n.db.GetKeyData()
-	log.Println("Soltando RLock")
-	n.dbMutex.RUnlock()
-	log.Println("Suelto RLock")
-	pred := n.getPredecessor()
-	log.Println(n.Info.EndPoint, "replicando al predecesor", addr)
-=======
 	fmt.Println("Obteniendo RLock")
 	n.dbMutex.RLock()
 	fmt.Println("RLock obtenido")
@@ -521,7 +510,6 @@ func (n *Node) SendPredecessorKeys(addr Address, nID []byte) error {
 	pred := n.getPredecessor()
 	log.Println(n.Info.EndPoint, "replicando al predecesor", addr)
 
->>>>>>> origin/DHT
 	if err != nil {
 		log.Println(err.Error())
 		return err
