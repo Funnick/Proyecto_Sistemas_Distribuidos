@@ -17,6 +17,40 @@ const (
 	Funs  string = "Functions"
 )
 
+func (n *Node) GetAllNames() ([]byte, error) {
+	key, err := n.getHashKey(Names)
+	if err != nil {
+		return nil, err
+	}
+
+	nInfo := n.findSuccessorOfKey(key)
+	return n.AskForAKey(nInfo.EndPoint, key)
+}
+
+func (n *Node) GetAllFun() ([]byte, error) {
+	key, err := n.getHashKey(Funs)
+	if err != nil {
+		return nil, err
+	}
+
+	nInfo := n.findSuccessorOfKey(key)
+	agentsFun, err := n.AskForAKey(nInfo.EndPoint, key)
+
+	var af map[string]string
+
+	err = json.Unmarshal(agentsFun, &af)
+	if err != nil {
+		return nil, err
+	}
+
+	var funs []string
+	for k := range af {
+		funs = append(funs, k)
+	}
+
+	return json.Marshal(funs)
+}
+
 func (n *Node) GetByName(agentName string) ([]byte, error) {
 	key, err := n.getHashKey(agentName)
 	if err != nil {
@@ -38,6 +72,8 @@ func (n *Node) GetByFun(fun string) ([]byte, error) {
 	if err != nil {
 		return make([]byte, 0), err
 	}
+
+	// Arreglar agentsFun len 0
 
 	var af map[string]string
 
@@ -199,7 +235,6 @@ func deleteFun(agentsFun []byte, fun string) ([]byte, error) {
 }
 
 func (n *Node) Delete(name string, fun string) error {
-
 	key, err := n.getHashKey(Names)
 	if err != nil {
 		return err
