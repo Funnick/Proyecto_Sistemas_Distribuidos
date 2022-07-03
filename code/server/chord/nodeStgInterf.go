@@ -2,14 +2,17 @@ package chord
 
 import (
 	"encoding/json"
+	"log"
 )
 
 type DBChord interface {
 	GetByName(string) ([]byte, error)
 	GetByFun(string) ([]byte, error)
 	Set(string, string, []byte) error
-	Update(string, []byte) error
+	Update(string, string, string, []byte) error
 	Delete(string, string) error
+	GetAllNames() ([]byte, error)
+	GetAllFun() ([]byte, error)
 }
 
 const (
@@ -35,6 +38,9 @@ func (n *Node) GetAllFun() ([]byte, error) {
 
 	nInfo := n.findSuccessorOfKey(key)
 	agentsFun, err := n.AskForAKey(nInfo.EndPoint, key)
+	if err != nil {
+		log.Println(err)
+	}
 
 	var af map[string]string
 
@@ -89,6 +95,9 @@ func (n *Node) GetByFun(fun string) ([]byte, error) {
 	}
 	nInfo = n.findSuccessorOfKey(key)
 	agent, err := n.AskForAKey(nInfo.EndPoint, key)
+	if err != nil {
+		log.Println(err.Error())
+	}
 
 	return agent, nil
 }
@@ -189,7 +198,7 @@ func (n *Node) Set(name string, fun string, data []byte) error {
 }
 
 // Arreglar
-func (n *Node) Update(name string, data []byte) error {
+func (n *Node) Update(name, desc1, desc2 string, data []byte) error {
 
 	key, err := n.getHashKey(name)
 	if err != nil {

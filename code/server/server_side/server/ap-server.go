@@ -129,6 +129,7 @@ func (pl *Platform) DeleteAgent(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(agent, &agentF)
 	if err != nil {
 		log.Println(err.Error())
+		return
 	}
 
 	if requestMessage.Password != agentF.Password {
@@ -137,13 +138,7 @@ func (pl *Platform) DeleteAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	desc := requestMessage.Description
-	if err != nil {
-		log.Println(err.Error())
-		return
-	}
-
-	err = pl.node.Delete(name, desc)
+	err = pl.node.Delete(name, agentF.Description)
 	if err != nil {
 		log.Println(err.Error())
 	} else {
@@ -178,6 +173,7 @@ func (pl *Platform) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err.Error())
 	}
+	desc := agentF.Description
 
 	if requestMessage.Password != agentF.Password {
 		responseMessage.Message = "Wrong password"
@@ -206,7 +202,7 @@ func (pl *Platform) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 		log.Println(err.Error())
 		return
 	}
-	err = pl.node.Update(agentF.Name, newAgent)
+	err = pl.node.Update(agentF.Name, desc, agentF.Description, newAgent)
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -224,7 +220,6 @@ func (pl *Platform) SearchByDesc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var responseMessage SearchAgentMessageResponse
-	//functionality, err := json.Marshal(requestMessage.Criteria)
 	agentsFound, err := pl.node.GetByFun(requestMessage.Description)
 	if err != nil {
 		log.Println(err.Error())

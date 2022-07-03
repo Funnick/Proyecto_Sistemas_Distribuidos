@@ -14,9 +14,9 @@ type CreateAgentMessage struct {
 }
 
 type DeleteAgentMessage struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Password    string `json:"password"`
+	Name string `json:"name"`
+	//Description string `json:"description"`
+	Password string `json:"password"`
 }
 
 type SearchAgentNameMessage struct {
