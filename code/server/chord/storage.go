@@ -131,14 +131,14 @@ func (db *DataBasePl) Set(vKey []byte, vData []byte) error {
 	if err != nil {
 		return err
 	}
-
+	fmt.Println("Setting")
 	for _, elem := range rows {
 		if bytes.Equal(elem.Key, vKey) {
 			return StorageError{message: "Existe otro agente con ese nombre"}
 		}
 	}
-
 	var newRows []RowData = append(rows, RowData{Key: vKey, Data: vData})
+	fmt.Println(len(newRows))
 	err = db.writeAll(newRows)
 	if err != nil {
 		return err
