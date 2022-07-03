@@ -18,8 +18,9 @@ func setURL(newURL string) {
 	url = newURL
 }
 
-func LoadConfig() {
-	readFile, err := os.Open("ap_client/config.cfg")
+func LoadConfig(path string) {
+    
+	readFile, err := os.Open(path)
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -64,7 +65,14 @@ func GetAgentsRequest() (resp string, agentList []Agent) {
 
 // Create new agent
 // TODO
-func CreateAgentRequest(agentMessage CreateAgentMessage) (resp string) {
+func CreateAgentRequest(ip, port, password, description, documentation string) (resp string) {
+	var agentMessage CreateAgentMessage = CreateAgentMessage{
+        IP: ip,
+        Port: port,
+        Password: password,
+        Description: description,
+        Documentation: documentation,
+	}
 	client := http.Client{Timeout: 10 * time.Second}
 	messageJson, err := json.Marshal(agentMessage)
 	if err != nil {
