@@ -214,31 +214,50 @@ func (n *Node) SaveResource(request *DataKeyRequest, response *EmptyResponse) er
 }
 
 func (n *Node) DeleteResource(request *KeyRequest, response *EmptyResponse) error {
-	log.Println("DeleteResource 1")
+	fmt.Println("DeleteResource 1")
 	n.dbMutex.Lock()
-	log.Println("DeleteResource 2")
+	fmt.Println("DeleteResource 2")
 
 	err := n.db.Delete(request.Key)
-	// Replicacion
-	log.Println("DeleteResource 3")
+
+	fmt.Println("DeleteResource 3")
 	n.dbMutex.Unlock()
-	log.Println("DeleteResource 4")
+	fmt.Println("DeleteResource 4")
+	// Replicacion
 	succ := n.getSuccessor()
 	if !bytes.Equal(succ.NodeID, n.Info.NodeID) {
+		fmt.Println("recursivoooooo")
 		n.SendDelete(succ.EndPoint, request.Key)
 	}
 
 	return err
 }
 
-func (n *Node) ReplicateResource(request *DataKeyRequest, response *EmptyResponse) error {
-	log.Println("ReplicateResource 1")
+func (n *Node) ReplicateDelete(request *KeyRequest, response *EmptyResponse) error {
+	fmt.Println("ReplicateDelete 1")
 	n.dbMutex.Lock()
-	log.Println("ReplicateResource 2")
-	err := n.db.Set(request.Key, request.Data)
-	log.Println("ReplicateResource 3")
+	fmt.Println("ReplicateDelete 2")
+
+	err := n.db.Delete(request.Key)
+
+	fmt.Println("ReplicateDelete 3")
 	n.dbMutex.Unlock()
-	log.Println("ReplicateResource 4")
+	fmt.Println("ReplicateDelete 4")
+
+	return err
+}
+
+func (n *Node) ReplicateResource(request *DataKeyRequest, response *EmptyResponse) error {
+	fmt.Println("ReplicateResource 1")
+	n.dbMutex.Lock()
+	fmt.Println("ReplicateResource 2")
+
+	err := n.db.Set(request.Key, request.Data)
+
+	fmt.Println("ReplicateResource 3")
+	n.dbMutex.Unlock()
+	fmt.Println("ReplicateResource 4")
+
 	return err
 }
 
@@ -391,4 +410,15 @@ func sendReplicate(addr Address, key, data []byte) error {
 	defer client.Close()
 
 	return client.Call("Node.ReplicateResource", &DataKeyRequest{Key: key, Data: data}, &EmptyResponse{})
+}
+
+func sendRepDel(addr Address, key []byte) error {
+	client, err := rpc.Dial("tcp", getAddr(addr))
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	defer client.Close()
+
+	return client.Call("Node.ReplicateDelete", &KeyRequest{Key: key}, &EmptyResponse{})
 }
