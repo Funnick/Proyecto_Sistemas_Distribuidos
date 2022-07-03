@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"log"
+	"math/rand"
 	"sync"
 	"time"
 )
@@ -119,6 +120,20 @@ func NewNode(ip, port, dbName, knowIP, knowPort string, cnf *Config) *Node {
 			}
 		}
 	}()
+
+	go func() {
+		ticker := time.NewTicker(3 * time.Second)
+		for {
+			select {
+			case <-ticker.C:
+				node.fixKeys()
+			case <-node.stopCh:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+
 	return node
 }
 
@@ -376,6 +391,28 @@ func (n *Node) fixFingers() {
 	}
 	var node NodeInfo = NodeInfo{NodeID: nodeInfo.NodeID, EndPoint: nodeInfo.EndPoint}
 	n.setPosFT(n.next, node)
+}
+
+func (n *Node) fixKeys() {
+	n.dbMutex.RLock()
+	rows, err := n.db.GetKeyData()
+	n.dbMutex.RUnlock()
+
+	l := len(rows)
+
+	if err != nil || l == 0 {
+		return
+	}
+
+	r := rand.Intn(l)
+	succOfr := n.findSuccessorOfKey(rows[r].Key)
+
+	pred := n.getPredecessor()
+	if !bytes.Equal(succOfr.NodeID, pred.NodeID) && !bytes.Equal(succOfr.NodeID, n.Info.NodeID) {
+		n.dbMutex.Lock()
+		n.db.Delete(rows[r].Key)
+		n.dbMutex.Unlock()
+	}
 }
 
 // Comunication methods
