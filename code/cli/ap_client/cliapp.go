@@ -68,8 +68,15 @@ func Commnads() {
 		{
 			Name:    "create-agent",
 			Aliases: []string{"C"},
-			Usage:   "Create new agent using the parameters [-i ip] [-pr port] [-des description] [-doc documentation]",
+			Usage:   "Create new agent using the parameters [-n name] [-i ip] [-pr port] [-des description] [-doc documentation]",
 			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "name, n",
+					Value:       "",
+					Usage:       "agent name ",
+					Destination: &name,
+					Required:    true,
+				},
 				&cli.StringFlag{
 					Name:        "ip, i",
 					Value:       "",
@@ -113,7 +120,7 @@ func Commnads() {
 				if err_val != nil {
 					return err_val
 				}
-				resp := CreateAgentRequest(ip, port, password, description, doc)
+				resp := CreateAgentRequest(name, ip, port, password, description, doc)
 				fmt.Println(resp)
 				return nil
 			},
@@ -121,12 +128,12 @@ func Commnads() {
 		{
 			Name:    "delete-agent",
 			Aliases: []string{"D"},
-			Usage:   "Delete an agent from the server using [-a aid] [-p pswrd] parameters",
+			Usage:   "Delete an agent from the server using [-n name] [-p pswrd] parameters",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
-					Name:        "aid, a",
+					Name:        "name, n",
 					Value:       "",
-					Usage:       "Agent id",
+					Usage:       "Agent name",
 					Destination: &aid,
 					Required:    true,
 				},
@@ -140,15 +147,13 @@ func Commnads() {
 			},
 
 			Action: func(c *cli.Context) error {
-				fmt.Println(conf)
 				LoadConfig(conf)
-
 				err_val := delete_validation()
 				if err_val != nil {
 					return err_val
 				}
 
-				resp := DeleteAgentRequest(aid, password)
+				resp := DeleteAgentRequest(name, password)
 				fmt.Println(resp)
 
 				return nil
@@ -255,54 +260,64 @@ func Commnads() {
 
 func update_validation() error {
 	if name == "" {
-		return cli.NewExitError("name error", 2)
+		return cli.NewExitError("name error", 1)
 	}
 	if password == "" {
-		return cli.NewExitError("Insert a correct Password", 2)
+		return cli.NewExitError("Insert a correct Password", 1)
 	}
 	if ip == "" {
-		return cli.NewExitError("Ip error", 2)
+		return cli.NewExitError("Ip error", 1)
 	}
 	if port == "" {
-		return cli.NewExitError("Port error", 2)
+		return cli.NewExitError("Port error", 1)
 	}
 	if newpassword == "" {
-		return cli.NewExitError("New Password error", 2)
+		return cli.NewExitError("New Password error", 1)
 	}
 	if description == "" {
-		return cli.NewExitError("Description error", 2)
+		return cli.NewExitError("Description error", 1)
 	}
 	if doc == "" {
-		return cli.NewExitError("Doc error", 2)
+		return cli.NewExitError("Doc error", 1)
 	}
 	return nil
 }
 
 func create_validation() error {
+    
+	if name == "" {
+		return cli.NewExitError("Name error", 1)
+	}
 	if ip == "" {
-		return cli.NewExitError("Ip error", 2)
+		return cli.NewExitError("Ip error", 1)
 	}
 	if port == "" {
-		return cli.NewExitError("Port error", 2)
+		return cli.NewExitError("Port error", 1)
 	}
 	if password == "" {
-		return cli.NewExitError("Password error", 2)
+		return cli.NewExitError("Password error", 1)
 	}
 	if description == "" {
-		return cli.NewExitError("Description error", 2)
+		return cli.NewExitError("Description error", 1)
 	}
 	if doc == "" {
-		return cli.NewExitError("Doc error", 2)
+		return cli.NewExitError("Doc error", 1)
 	}
 	return nil
 }
 
 func delete_validation() error {
-	if aid == "" {
-		return cli.NewExitError("Id error", 2)
+	if name == "" {
+		return cli.NewExitError("name error", 1)
 	}
 	if password == "" {
-		return cli.NewExitError("Password error", 2)
+		return cli.NewExitError("Password error", 1)
 	}
 	return nil
+}
+
+func AppInit(){
+	Info()
+	Flags()
+	Commnads()
 }

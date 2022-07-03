@@ -10,6 +10,7 @@ La aplicación consiste en una interfaz de usuario basada en linea de comandos b
 
 Para crear un nuevo agente invocaremos el comando **create-agent** o su forma abreviada **C**. Cuando se hace uso de este comando es necesario introducir los parametros que seran los que definiran el nuevo agente usando las opciones o flags siguientes, sin importar su orden:
 
+* **-name**, **-n** el nombre que tendrá el agente.
 * **-ip**, **-i** es el IP donde se encontrara el agente a crear.
 * **-port**, **-pr** representa el puerto donde se encontrará el nuevo agente.
 * **-password**, -**pass**, **-p** será la contraseña que guardará el acceso al nuevo agente.
@@ -32,7 +33,7 @@ go run cli.go create-agent -doc documentation -password contraseña -port 444 -d
 
 Para eliminar un agente invocaremos el comando **delete-agent** o su forma abreviada **D**. Cuando se hace uso de este comando es necesario introducir los parametros que seran los que definiran el nuevo agente usando las opciones o flags siguientes, sin importar su orden:
 
-* **-aid**, **-a** representa el id mediante el cual identificaremos el agente.
+* **-name**, **-n** representa el id mediante el cual identificaremos el agente.
 
 * **-password**, -**pass**, **-p** será la contraseña que guardará el acceso al agente.
 
@@ -41,11 +42,11 @@ Para eliminar un agente invocaremos el comando **delete-agent** o su forma abrev
 Ejemplos de uso del programa:
 
 ``` shell
-go run cli.go D -a id -password contraseña 
+go run cli.go D -n name -password contraseña 
 ```
 
 ``` shell
-go run cli.go delete-agent -p contraseña -aid id 
+go run cli.go delete-agent -p contraseña -name agentname 
 ```
 
 
