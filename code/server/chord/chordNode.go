@@ -3,7 +3,6 @@ package chord
 import (
 	"bytes"
 	"crypto/sha1"
-	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -332,7 +331,7 @@ func (n *Node) checkSuccessor() {
 	succ := n.getSuccessor()
 
 	if succ == nil || !n.Ping(succ.EndPoint) {
-		fmt.Println("se cayo el succ")
+		log.Println("Successor not found")
 		n.ftMutex.RLock()
 		defer n.ftMutex.RUnlock()
 		for i := 0; i < 160; i++ {
@@ -427,9 +426,7 @@ func (n *Node) Ping(addr Address) bool {
 
 // Storage Methods
 func (n *Node) AskForAKey(addr Address, key []byte) ([]byte, error) {
-	fmt.Println(n.Info.EndPoint, addr)
 	data, err := askForAKey(addr, key)
-	fmt.Println("5")
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -465,18 +462,18 @@ func (n *Node) ReplicateKey(addr Address) error {
 	n.dbMutex.RLock()
 	defer n.dbMutex.RUnlock()
 
-	fmt.Println(n.Info.EndPoint, "replicando al succ", addr)
+	log.Println(n.Info.EndPoint, "replicating the successor", addr)
 
 	rows, err := n.db.GetKeyData()
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return err
 	}
 
 	for _, elem := range rows {
 		err = n.SendReplicate(addr, elem.Key, elem.Data)
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Println(err.Error())
 		}
 	}
 
@@ -488,11 +485,11 @@ func (n *Node) SendPredecessorKeys(addr Address, nID []byte) error {
 	defer n.dbMutex.RUnlock()
 
 	pred := n.getPredecessor()
-	fmt.Println(n.Info.EndPoint, "replicando al pred", addr)
+	log.Println(n.Info.EndPoint, "replicating the predecessor", addr)
 
 	rows, err := n.db.GetKeyData()
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return err
 	}
 

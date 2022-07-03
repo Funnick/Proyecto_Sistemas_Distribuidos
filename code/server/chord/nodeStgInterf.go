@@ -2,6 +2,7 @@ package chord
 
 import (
 	"encoding/json"
+	"log"
 )
 
 type DBChord interface {
@@ -37,6 +38,9 @@ func (n *Node) GetAllFun() ([]byte, error) {
 
 	nInfo := n.findSuccessorOfKey(key)
 	agentsFun, err := n.AskForAKey(nInfo.EndPoint, key)
+	if err != nil {
+		log.Println(err)
+	}
 
 	var af map[string]string
 
@@ -91,6 +95,9 @@ func (n *Node) GetByFun(fun string) ([]byte, error) {
 	}
 	nInfo = n.findSuccessorOfKey(key)
 	agent, err := n.AskForAKey(nInfo.EndPoint, key)
+	if err != nil {
+		log.Println(err.Error())
+	}
 
 	return agent, nil
 }
