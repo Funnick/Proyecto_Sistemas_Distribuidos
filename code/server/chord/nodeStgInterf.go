@@ -13,6 +13,8 @@ type DBChord interface {
 	Delete(string, string) error
 	GetAllNames() ([]byte, error)
 	GetAllFun() ([]byte, error)
+	Stop()
+	Join(*NodeInfo) error
 }
 
 const (

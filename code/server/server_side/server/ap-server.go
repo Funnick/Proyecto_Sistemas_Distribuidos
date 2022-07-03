@@ -1,9 +1,13 @@
 package server
 
 import (
+	"crypto/sha1"
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"server/chord"
 
@@ -34,6 +38,11 @@ func NewPlatform(ip, port string) *Platform {
 	pl.router.HandleFunc("/ap/update", pl.UpdateAgent).Methods(http.MethodPut)
 
 	return pl
+}
+
+// Stop
+func (pl *Platform) Stop() {
+	pl.node.Stop()
 }
 
 // Get all agents
@@ -267,8 +276,23 @@ func (pl *Platform) SearchByName(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(responseMessage)
 }
 
-func (pl *Platform) Run(port, nameDB, knowIP string) {
-	/*if knowIP == "" {
+func (pl *Platform) Join(ip, port string) error {
+	if ip == "" {
+		ip = pl.Multicast(ip)
+	}
+	h := sha1.New()
+	h.Write([]byte(ip + ":" + port))
+
+	knowNode := &chord.NodeInfo{
+		NodeID:   h.Sum(nil),
+		EndPoint: chord.Address{IP: ip, Port: port},
+	}
+
+	return pl.node.Join(knowNode)
+}
+
+func (pl *Platform) Multicast(knowIP string) string {
+	if knowIP == "" {
 		ip := pl.endpoint.IP
 		ipSplit := strings.Split(ip, ".")[:3]
 		var subnet string
@@ -287,8 +311,12 @@ func (pl *Platform) Run(port, nameDB, knowIP string) {
 
 			break
 		}
-	}*/
+	}
+	return knowIP
+}
 
+func (pl *Platform) Run(port, nameDB, knowIP string) {
+	knowIP = pl.Multicast(knowIP)
 	pl.node = chord.NewNode(pl.endpoint.IP, port, nameDB, knowIP, "6001", chord.DefaultConfig())
 	err := http.ListenAndServe(pl.endpoint.IP+":"+pl.endpoint.Port, &pl.router)
 	if err != nil {

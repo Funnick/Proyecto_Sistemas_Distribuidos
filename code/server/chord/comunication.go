@@ -227,7 +227,7 @@ func (n *Node) DeleteResource(request *KeyRequest, response *EmptyResponse) erro
 	succ := n.getSuccessor()
 	if !bytes.Equal(succ.NodeID, n.Info.NodeID) {
 		fmt.Println("recursivoooooo")
-		n.SendDelete(succ.EndPoint, request.Key)
+		n.SendRepDel(succ.EndPoint, request.Key)
 	}
 
 	return err
