@@ -9,7 +9,6 @@ import (
 
 type DataBasePlatform interface {
 	GetByName([]byte) ([]byte, error)
-	//GetByFun(string) ([][]byte, error)
 	GetAll() ([][]byte, error)
 	GetKeyData() ([]RowData, error)
 	Set([]byte, []byte) error
@@ -105,28 +104,8 @@ func (db *DataBasePl) GetByName(key []byte) ([]byte, error) {
 		}
 	}
 
-	return make([]byte, 0), StorageError{message: "There is no agent with that name"}
+	return make([]byte, 0), StorageError{message: "Recurso no encontrado"}
 }
-
-/*
-func (db *DataBasePl) GetByFun(fun string) ([][]byte, error) {
-	rows, err := db.readAll()
-	if err != nil {
-		return make([][]byte, 0), err
-	}
-
-	data := make([]string, 0)
-	for _, elem := range rows {
-		if SearchString(elem.Data, fun) != -1 {
-			data = append(data, elem.Data)
-		}
-	}
-	if len(data) > 0 {
-		return data, StorageError{message: "There is no agents with that function"}
-	}
-	return data, nil
-}
-*/
 
 func (db *DataBasePl) GetAll() ([][]byte, error) {
 	rows, err := db.readAll()
@@ -135,7 +114,7 @@ func (db *DataBasePl) GetAll() ([][]byte, error) {
 	}
 
 	if len(rows) == 0 {
-		return nil, StorageError{message: "No agents"}
+		return nil, StorageError{message: "No hay agentes"}
 	}
 
 	var data [][]byte = make([][]byte, len(rows))
@@ -155,7 +134,7 @@ func (db *DataBasePl) Set(vKey []byte, vData []byte) error {
 
 	for _, elem := range rows {
 		if bytes.Equal(elem.Key, vKey) {
-			return StorageError{message: "There is another agent with that name"}
+			return StorageError{message: "Existe otro agente con ese nombre"}
 		}
 	}
 
@@ -188,7 +167,7 @@ func (db *DataBasePl) Update(vKey []byte, vData []byte) error {
 		}
 	}
 
-	return StorageError{"There is no agent with that name"}
+	return StorageError{"Recurso no encontrado"}
 }
 
 func (db *DataBasePl) Delete(vKey []byte) error {
@@ -209,7 +188,7 @@ func (db *DataBasePl) Delete(vKey []byte) error {
 		}
 	}
 
-	return StorageError{"There is no agent with that name"}
+	return StorageError{"Recurso no encontrado"}
 }
 
 // Errors

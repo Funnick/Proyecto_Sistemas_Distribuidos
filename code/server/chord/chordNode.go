@@ -65,6 +65,8 @@ func NewNode(ip, port, dbName, knowIP, knowPort string, cnf *Config) *Node {
 
 	RunServer(NewRPCServer(node), node.Info.EndPoint, node.stopCh)
 
+	NewBroadcastServer(node.Info.EndPoint.IP, node.stopCh)
+
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		for {
@@ -331,7 +333,7 @@ func (n *Node) checkSuccessor() {
 	succ := n.getSuccessor()
 
 	if succ == nil || !n.Ping(succ.EndPoint) {
-		log.Println("Successor not found")
+		log.Println("Buscando sucesor")
 		n.ftMutex.RLock()
 		defer n.ftMutex.RUnlock()
 		for i := 0; i < 160; i++ {
@@ -462,7 +464,7 @@ func (n *Node) ReplicateKey(addr Address) error {
 	n.dbMutex.RLock()
 	defer n.dbMutex.RUnlock()
 
-	log.Println(n.Info.EndPoint, "replicating the successor", addr)
+	log.Println(n.Info.EndPoint, "replicando al sucesor", addr)
 
 	rows, err := n.db.GetKeyData()
 	if err != nil {
@@ -485,7 +487,7 @@ func (n *Node) SendPredecessorKeys(addr Address, nID []byte) error {
 	defer n.dbMutex.RUnlock()
 
 	pred := n.getPredecessor()
-	log.Println(n.Info.EndPoint, "replicating the predecessor", addr)
+	log.Println(n.Info.EndPoint, "replicando al predecesor", addr)
 
 	rows, err := n.db.GetKeyData()
 	if err != nil {

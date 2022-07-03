@@ -3,7 +3,10 @@ package server
 import (
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"server/chord"
 
@@ -43,7 +46,7 @@ func (pl *Platform) GetAgentsNames(w http.ResponseWriter, r *http.Request) {
 	responseFound, err := pl.node.GetAllNames()
 	if err != nil {
 		log.Println(err.Error())
-		responseMessage.Message = "There is no agents"
+		responseMessage.Message = "No hay agentes registrados"
 		json.NewEncoder(w).Encode(responseMessage)
 		return
 	}
@@ -60,7 +63,7 @@ func (pl *Platform) GetAgentsDescs(w http.ResponseWriter, r *http.Request) {
 	responseFound, err := pl.node.GetAllFun()
 	if err != nil {
 		log.Println(err.Error())
-		responseMessage.Message = "There is no agents"
+		responseMessage.Message = "No hay agentes registrados"
 		json.NewEncoder(w).Encode(responseMessage)
 		return
 	}
@@ -97,7 +100,7 @@ func (pl *Platform) CreateNewAgent(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(responseMessage)
 		return
 	}
-	responseMessage := ResponseMessage{Message: "Agent create successfully"}
+	responseMessage := ResponseMessage{Message: "Agente creado satisfactoriamente"}
 	json.NewEncoder(w).Encode(responseMessage)
 }
 
@@ -120,7 +123,7 @@ func (pl *Platform) DeleteAgent(w http.ResponseWriter, r *http.Request) {
 	agent, err := pl.node.GetByName(name)
 	if err != nil {
 		log.Println(err.Error())
-		responseMessage.Message = "There is no agent with that name:" + requestMessage.Name
+		responseMessage.Message = "No existe el agente:" + requestMessage.Name
 		json.NewEncoder(w).Encode(responseMessage)
 		return
 	}
@@ -133,7 +136,7 @@ func (pl *Platform) DeleteAgent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if requestMessage.Password != agentF.Password {
-		responseMessage.Message = "Wrong password"
+		responseMessage.Message = "Contraseña incorrecta"
 		json.NewEncoder(w).Encode(responseMessage)
 		return
 	}
@@ -142,7 +145,7 @@ func (pl *Platform) DeleteAgent(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err.Error())
 	} else {
-		responseMessage.Message = "Agent remove successfully"
+		responseMessage.Message = "Agente removido satisfactoriamente"
 		json.NewEncoder(w).Encode(responseMessage)
 		return
 	}
@@ -163,7 +166,7 @@ func (pl *Platform) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 	agent, err := pl.node.GetByName(name)
 	if err != nil {
 		log.Println(err.Error())
-		responseMessage.Message = "There is no agent with that name:" + requestMessage.Name
+		responseMessage.Message = "No existe el agente:" + requestMessage.Name
 		json.NewEncoder(w).Encode(responseMessage)
 		return
 	}
@@ -223,7 +226,7 @@ func (pl *Platform) SearchByDesc(w http.ResponseWriter, r *http.Request) {
 	agentsFound, err := pl.node.GetByFun(requestMessage.Description)
 	if err != nil {
 		log.Println(err.Error())
-		responseMessage.Message = "There is no agent with that description"
+		responseMessage.Message = "No existen agentes con esa descripción"
 		json.NewEncoder(w).Encode(responseMessage)
 		return
 	}
@@ -246,7 +249,7 @@ func (pl *Platform) SearchByName(w http.ResponseWriter, r *http.Request) {
 	agentsFound, err := pl.node.GetByName(requestMessage.Name)
 	if err != nil {
 		log.Println(err.Error())
-		responseMessage.Message = "There is no agent with that name"
+		responseMessage.Message = "No existe el agente"
 		json.NewEncoder(w).Encode(responseMessage)
 		return
 	}
@@ -257,8 +260,29 @@ func (pl *Platform) SearchByName(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(responseMessage)
 }
 
-func (pl *Platform) Run(port, nameDB, knowIP, knowPort string) {
-	pl.node = chord.NewNode(pl.endpoint.IP, port, nameDB, knowIP, knowPort, chord.DefaultConfig())
+func (pl *Platform) Run(port, nameDB, knowIP string) {
+	if knowIP == "" {
+		ip := pl.endpoint.IP
+		ipSplit := strings.Split(ip, ".")[:3]
+		var subnet string
+		for _, value := range ipSplit {
+			subnet += value + "."
+		}
+		for i := 1; i < 255; i++ {
+			tryIP := subnet + strconv.Itoa(i)
+			client, err := net.Dial("tcp", tryIP+":6002")
+			if err != nil {
+				continue
+			}
+			client.Close()
+
+			knowIP = tryIP
+
+			break
+		}
+	}
+
+	pl.node = chord.NewNode(pl.endpoint.IP, port, nameDB, knowIP, "6001", chord.DefaultConfig())
 	err := http.ListenAndServe(pl.endpoint.IP+":"+pl.endpoint.Port, &pl.router)
 	if err != nil {
 		log.Println(err.Error())

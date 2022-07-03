@@ -31,7 +31,7 @@ type DataResponse struct {
 type PingResquestError struct{}
 
 func (p PingResquestError) Error() string {
-	return "Server Off"
+	return "Servidor no respondió"
 }
 
 // Interface for comunication between
@@ -44,6 +44,36 @@ type Comunication interface {
 	Notify(Address) error
 	Ping(Address) bool
 	AskForAKey(Address, []byte) (string, error)
+}
+
+// Server LisentBroadcast
+func NewBroadcastServer(ip string, stopC chan struct{}) error {
+	listener, err := net.Listen("tcp", ip+":"+"6002")
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for {
+			select {
+			case <-stopC:
+				log.Println("Deteniendo servidor")
+				if err = listener.Close(); err != nil {
+					panic(err)
+				}
+				return
+			default:
+				conn, err := listener.Accept()
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+				conn.Close()
+			}
+		}
+	}()
+
+	return nil
 }
 
 // Server logic for rpc
@@ -67,7 +97,7 @@ func RunServer(s *rpc.Server, addr Address, stopC chan struct{}) {
 		for {
 			select {
 			case <-stopC:
-				log.Println("Stop server")
+				log.Println("Deteniendo servidor")
 				if err = listener.Close(); err != nil {
 					panic(err)
 				}
@@ -211,7 +241,7 @@ func getSuccessorOf(addr Address) (*NodeInfo, error) {
 	}
 
 	if response.IsNil {
-		log.Println("Response is nil")
+		log.Println("getSuccessorOf respuesta nil")
 		return nil, nil
 	}
 
@@ -235,12 +265,12 @@ func getSuccessorOfKey(addr Address, key []byte) (*NodeInfo, error) {
 	}
 
 	if response.IsNil {
-		log.Println("Response is nil")
+		log.Println("getSuccessorOfKey respuesta nil")
 		return nil, nil
 	}
 
 	if response.NInfo == nil {
-		log.Println("Response is nil")
+		log.Println("getSuccessorOfKey info de respuesta nil")
 		return nil, nil
 	}
 
@@ -264,7 +294,7 @@ func getPredecessorOf(addr Address) (*NodeInfo, error) {
 	}
 
 	if response.IsNil {
-		log.Println("Response is nil")
+		log.Println("getPredecessorOf respuesta nil")
 		return nil, nil
 	}
 
