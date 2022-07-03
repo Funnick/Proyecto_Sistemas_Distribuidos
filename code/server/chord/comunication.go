@@ -296,7 +296,6 @@ func ping(addr Address) error {
 
 func askForAKey(addr Address, key []byte) ([]byte, error) {
 	client, err := rpc.Dial("tcp", getAddr(addr))
-	fmt.Println("Dial ok")
 	if err != nil {
 		return nil, err
 	}
@@ -304,7 +303,6 @@ func askForAKey(addr Address, key []byte) ([]byte, error) {
 
 	var response *DataResponse = &DataResponse{}
 	err = client.Call("Node.GetResource", &KeyRequest{Key: key}, response)
-	fmt.Println("Call ok")
 	if err != nil {
 		return nil, err
 	}
