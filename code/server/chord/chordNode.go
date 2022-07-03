@@ -2,7 +2,9 @@ package chord
 
 import (
 	"bytes"
+	"crypto/sha1"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 )
@@ -34,7 +36,15 @@ type Node struct {
 	next int
 }
 
-func NewNode(info NodeInfo, cnf *Config, knowNode *NodeInfo, dbName string) *Node {
+func NewNode(ip, port, dbName, knowIP, knowPort string, cnf *Config) *Node {
+	h := sha1.New()
+	h.Write([]byte(ip + ":" + port))
+
+	info := NodeInfo{
+		NodeID:   h.Sum(nil),
+		EndPoint: Address{IP: ip, Port: port},
+	}
+
 	node := &Node{
 		Info:   info,
 		cnf:    cnf,
@@ -44,6 +54,13 @@ func NewNode(info NodeInfo, cnf *Config, knowNode *NodeInfo, dbName string) *Nod
 	}
 
 	node.ft = newFingerTable(&info, node.cnf.HashSize)
+
+	var knowNode *NodeInfo = nil
+	if knowIP != "" {
+		h.Reset()
+		h.Write([]byte(knowIP + ":" + knowPort))
+		knowNode = &NodeInfo{NodeID: h.Sum(nil), EndPoint: Address{IP: knowIP, Port: knowPort}}
+	}
 
 	node.Join(knowNode)
 
@@ -134,6 +151,7 @@ func (n *Node) Join(knowNode *NodeInfo) error {
 		var err error
 		succ, err = n.GetSuccessorOfKey(knowNode.EndPoint, n.Info.NodeID)
 		if err != nil {
+			log.Println(err.Error())
 			return nil
 		}
 	}
@@ -147,7 +165,7 @@ func (n *Node) Stop() {
 	close(n.stopCh)
 }
 
-// Node privete methods
+// Node private methods
 func (n *Node) findSuccessorOfKey(key []byte) *NodeInfo {
 
 	current := n.Info
@@ -170,6 +188,7 @@ func (n *Node) findSuccessorOfKey(key []byte) *NodeInfo {
 
 	succOfKey, err := n.GetSuccessorOfKey(cpn.EndPoint, key)
 	if err != nil {
+		log.Println(err.Error())
 		return nil
 	}
 	return succOfKey
@@ -276,7 +295,6 @@ func (n *Node) stabilize() {
 	if succ == nil {
 		return
 	}
-
 	predOfSucc, err := n.GetPredecessorOf(succ.EndPoint)
 	if err != nil {
 		return
@@ -286,8 +304,10 @@ func (n *Node) stabilize() {
 		n.Notify(succ.EndPoint)
 		return
 	}
-
 	if between(n.Info.NodeID, succ.NodeID, predOfSucc.NodeID) {
+		if !bytes.Equal(predOfSucc.NodeID, n.Info.NodeID) {
+			n.ReplicateKey(predOfSucc.EndPoint)
+		}
 		n.setSuccessor(predOfSucc)
 	}
 	newSucc := n.getSuccessor()
@@ -299,8 +319,11 @@ func (n *Node) notify(newPredecessor *NodeInfo) {
 	pred := n.getPredecessor()
 
 	if pred == nil || between(pred.NodeID, n.Info.NodeID, newPredecessor.NodeID) {
+		// transferir llaves
+		if !bytes.Equal(newPredecessor.NodeID, n.Info.NodeID) {
+			n.SendPredecessorKeys(newPredecessor.EndPoint, newPredecessor.NodeID)
+		}
 		n.setPredecessor(newPredecessor)
-		// falta transferir llaves
 	}
 }
 
@@ -309,12 +332,17 @@ func (n *Node) checkSuccessor() {
 	succ := n.getSuccessor()
 
 	if succ == nil || !n.Ping(succ.EndPoint) {
+		fmt.Println("se cayo el succ")
 		n.ftMutex.RLock()
 		defer n.ftMutex.RUnlock()
 		for i := 0; i < 160; i++ {
 			if n.Ping(n.ft.Table[i].SuccNode.EndPoint) {
 				succ = n.ft.Table[i].SuccNode
 				n.setSuccessor(succ)
+				// Replicar llaves
+				if !bytes.Equal(succ.NodeID, n.Info.NodeID) {
+					n.ReplicateKey(succ.EndPoint)
+				}
 				return
 			}
 		}
@@ -354,7 +382,7 @@ func (n *Node) fixFingers() {
 func (n *Node) GetSuccessorOf(addr Address) (*NodeInfo, error) {
 	nodeInfo, err := getSuccessorOf(addr)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return nil, err
 	}
 	return nodeInfo, err
@@ -364,7 +392,7 @@ func (n *Node) GetSuccessorOf(addr Address) (*NodeInfo, error) {
 func (n *Node) GetSuccessorOfKey(addr Address, key []byte) (*NodeInfo, error) {
 	nodeInfo, err := getSuccessorOfKey(addr, key)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return nil, err
 	}
 	return nodeInfo, nil
@@ -374,7 +402,7 @@ func (n *Node) GetSuccessorOfKey(addr Address, key []byte) (*NodeInfo, error) {
 func (n *Node) GetPredecessorOf(addr Address) (*NodeInfo, error) {
 	nodeInfo, err := getPredecessorOf(addr)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return nil, err
 	}
 	return nodeInfo, err
@@ -386,7 +414,7 @@ func (n *Node) Notify(addr Address) error {
 	info = n.Info
 	err := notifyNode(addr, &info)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 	}
 	return nil
 }
@@ -394,34 +422,93 @@ func (n *Node) Notify(addr Address) error {
 // Make ping to a node
 func (n *Node) Ping(addr Address) bool {
 	err := ping(addr)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 // Storage Methods
 func (n *Node) AskForAKey(addr Address, key []byte) ([]byte, error) {
+	fmt.Println(n.Info.EndPoint, addr)
 	data, err := askForAKey(addr, key)
+	fmt.Println("5")
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return nil, err
 	}
 	return data, nil
 }
 
-func (n *Node) SendSet(addr Address, key []byte, data []byte) error {
+func (n *Node) SendSet(addr Address, key, data []byte) error {
 	err := sendSet(addr, key, data)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 	}
 	return err
+}
+
+func (n *Node) SendReplicate(addr Address, key []byte, data []byte) error {
+	err := sendReplicate(addr, key, data)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (n *Node) SendDelete(addr Address, key []byte) error {
 	err := sendDelete(addr, key)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 	}
 	return err
+}
+
+func (n *Node) ReplicateKey(addr Address) error {
+	n.dbMutex.RLock()
+	defer n.dbMutex.RUnlock()
+
+	fmt.Println(n.Info.EndPoint, "replicando al succ", addr)
+
+	rows, err := n.db.GetKeyData()
+	if err != nil {
+		fmt.Println(err.Error())
+		return err
+	}
+
+	for _, elem := range rows {
+		err = n.SendReplicate(addr, elem.Key, elem.Data)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+	}
+
+	return nil
+}
+
+func (n *Node) SendPredecessorKeys(addr Address, nID []byte) error {
+	n.dbMutex.RLock()
+	defer n.dbMutex.RUnlock()
+
+	pred := n.getPredecessor()
+	fmt.Println(n.Info.EndPoint, "replicando al pred", addr)
+
+	rows, err := n.db.GetKeyData()
+	if err != nil {
+		fmt.Println(err.Error())
+		return err
+	}
+
+	if pred == nil {
+		for _, elem := range rows {
+			if bytes.Compare(elem.Key, nID) < 1 {
+				n.SendReplicate(addr, elem.Key, elem.Data)
+			}
+		}
+	} else {
+		for _, elem := range rows {
+			if betweenRightInlcude(pred.NodeID, nID, elem.Key) {
+				n.SendReplicate(addr, elem.Key, elem.Data)
+			}
+		}
+	}
+
+	return nil
 }

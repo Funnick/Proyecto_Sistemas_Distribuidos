@@ -1,7 +1,9 @@
 package chord
 
 import (
+	"bytes"
 	"fmt"
+	"log"
 	"net"
 	"net/rpc"
 )
@@ -147,7 +149,7 @@ func (n *Node) GetResource(request *KeyRequest, response *DataResponse) error {
 
 	data, err := n.db.GetByName(request.Key)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return err
 	}
 
@@ -159,14 +161,34 @@ func (n *Node) SaveResource(request *DataKeyRequest, response *EmptyResponse) er
 	n.dbMutex.Lock()
 	defer n.dbMutex.Unlock()
 
-	return n.db.Set(request.Key, request.Data)
+	// Replicacion
+	succ := n.getSuccessor()
+	if !bytes.Equal(succ.NodeID, n.Info.NodeID) {
+		n.SendReplicate(succ.EndPoint, request.Key, request.Data)
+	}
+
+	err := n.db.Set(request.Key, request.Data)
+	return err
 }
 
 func (n *Node) DeleteResource(request *KeyRequest, response *EmptyResponse) error {
 	n.dbMutex.Lock()
 	defer n.dbMutex.Unlock()
 
+	// Replicacion
+	succ := n.getSuccessor()
+	if !bytes.Equal(succ.NodeID, n.Info.NodeID) {
+		n.SendDelete(succ.EndPoint, request.Key)
+	}
+
 	return n.db.Delete(request.Key)
+}
+
+func (n *Node) ReplicateResource(request *DataKeyRequest, response *EmptyResponse) error {
+	n.dbMutex.Lock()
+	defer n.dbMutex.Unlock()
+
+	return n.db.Set(request.Key, request.Data)
 }
 
 // Client logic for rpc
@@ -176,6 +198,7 @@ func (n *Node) DeleteResource(request *KeyRequest, response *EmptyResponse) erro
 func getSuccessorOf(addr Address) (*NodeInfo, error) {
 	client, err := rpc.Dial("tcp", getAddr(addr))
 	if err != nil {
+		log.Println(err.Error())
 		return nil, err
 	}
 	defer client.Close()
@@ -183,10 +206,12 @@ func getSuccessorOf(addr Address) (*NodeInfo, error) {
 	var response *NodeInfoResponse = &NodeInfoResponse{}
 	err = client.Call("Node.GetSuccessorRPC", &EmptyRequest{}, response)
 	if err != nil {
+		log.Println(err.Error())
 		return nil, err
 	}
 
 	if response.IsNil {
+		log.Println("Response is nil")
 		return nil, nil
 	}
 
@@ -196,6 +221,7 @@ func getSuccessorOf(addr Address) (*NodeInfo, error) {
 func getSuccessorOfKey(addr Address, key []byte) (*NodeInfo, error) {
 	client, err := rpc.Dial("tcp", getAddr(addr))
 	if err != nil {
+		log.Println(err.Error())
 		return nil, err
 	}
 	defer client.Close()
@@ -203,10 +229,13 @@ func getSuccessorOfKey(addr Address, key []byte) (*NodeInfo, error) {
 	var response *NodeInfoResponse = &NodeInfoResponse{NInfo: nil, IsNil: false}
 	err = client.Call("Node.GetSuccessorOfKeyRPC", &KeyRequest{Key: key}, response)
 	if err != nil {
+		client.Close()
+		log.Println(err.Error())
 		return nil, err
 	}
 
 	if response.IsNil {
+		log.Println("Response is Nil")
 		return nil, nil
 	}
 
@@ -222,6 +251,7 @@ func getSuccessorOfKey(addr Address, key []byte) (*NodeInfo, error) {
 func getPredecessorOf(addr Address) (*NodeInfo, error) {
 	client, err := rpc.Dial("tcp", getAddr(addr))
 	if err != nil {
+		log.Println(err.Error())
 		return nil, err
 	}
 	defer client.Close()
@@ -229,10 +259,12 @@ func getPredecessorOf(addr Address) (*NodeInfo, error) {
 	var response *NodeInfoResponse = &NodeInfoResponse{}
 	err = client.Call("Node.GetPredecessorOfRPC", &EmptyRequest{}, response)
 	if err != nil {
+		log.Println(err.Error())
 		return nil, err
 	}
 
 	if response.IsNil {
+		log.Println("Response is nil")
 		return nil, nil
 	}
 
@@ -242,6 +274,7 @@ func getPredecessorOf(addr Address) (*NodeInfo, error) {
 func notifyNode(addr Address, n *NodeInfo) error {
 	client, err := rpc.Dial("tcp", getAddr(addr))
 	if err != nil {
+		log.Println(err.Error())
 		return err
 	}
 	defer client.Close()
@@ -253,6 +286,7 @@ func notifyNode(addr Address, n *NodeInfo) error {
 func ping(addr Address) error {
 	client, err := rpc.Dial("tcp", getAddr(addr))
 	if err != nil {
+		log.Println(err.Error())
 		return PingResquestError{}
 	}
 	defer client.Close()
@@ -269,7 +303,6 @@ func askForAKey(addr Address, key []byte) ([]byte, error) {
 
 	var response *DataResponse = &DataResponse{}
 	err = client.Call("Node.GetResource", &KeyRequest{Key: key}, response)
-
 	if err != nil {
 		return nil, err
 	}
@@ -280,6 +313,7 @@ func askForAKey(addr Address, key []byte) ([]byte, error) {
 func sendSet(addr Address, key []byte, data []byte) error {
 	client, err := rpc.Dial("tcp", getAddr(addr))
 	if err != nil {
+		log.Println(err.Error())
 		return err
 	}
 	defer client.Close()
@@ -290,9 +324,20 @@ func sendSet(addr Address, key []byte, data []byte) error {
 func sendDelete(addr Address, key []byte) error {
 	client, err := rpc.Dial("tcp", getAddr(addr))
 	if err != nil {
+		log.Println(err.Error())
 		return err
 	}
 	defer client.Close()
 
 	return client.Call("Node.DeleteResource", &KeyRequest{Key: key}, &EmptyResponse{})
+}
+
+func sendReplicate(addr Address, key, data []byte) error {
+	client, err := rpc.Dial("tcp", getAddr(addr))
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	return client.Call("Node.ReplicateResource", &DataKeyRequest{Key: key, Data: data}, &EmptyResponse{})
 }
