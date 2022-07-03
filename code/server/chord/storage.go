@@ -103,7 +103,6 @@ func (db *DataBasePl) GetByName(key []byte) ([]byte, error) {
 			return elem.Data, nil
 		}
 	}
-
 	return make([]byte, 0), StorageError{message: "Recurso no encontrado"}
 }
 

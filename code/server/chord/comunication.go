@@ -174,10 +174,16 @@ func (n *Node) MakePingRPC(request *EmptyRequest, response *EmptyResponse) error
 }
 
 func (n *Node) GetResource(request *KeyRequest, response *DataResponse) error {
+	fmt.Println("GetResource 1")
 	n.dbMutex.RLock()
-	defer n.dbMutex.RUnlock()
+	fmt.Println("GetResource 2")
 
 	data, err := n.db.GetByName(request.Key)
+
+	fmt.Println("GetResource 3")
+	n.dbMutex.RUnlock()
+	fmt.Println("GetResource 4")
+
 	if err != nil {
 		log.Println(err.Error())
 		return err
@@ -188,8 +194,15 @@ func (n *Node) GetResource(request *KeyRequest, response *DataResponse) error {
 }
 
 func (n *Node) SaveResource(request *DataKeyRequest, response *EmptyResponse) error {
+	fmt.Println("SaveResource 1")
 	n.dbMutex.Lock()
-	defer n.dbMutex.Unlock()
+	fmt.Println("SaveResource 2")
+
+	err := n.db.Set(request.Key, request.Data)
+
+	fmt.Println("SaveResource 3")
+	n.dbMutex.Unlock()
+	fmt.Println("SaveResource 4")
 
 	// Replicacion
 	succ := n.getSuccessor()
@@ -197,28 +210,36 @@ func (n *Node) SaveResource(request *DataKeyRequest, response *EmptyResponse) er
 		n.SendReplicate(succ.EndPoint, request.Key, request.Data)
 	}
 
-	err := n.db.Set(request.Key, request.Data)
 	return err
 }
 
 func (n *Node) DeleteResource(request *KeyRequest, response *EmptyResponse) error {
+	log.Println("DeleteResource 1")
 	n.dbMutex.Lock()
-	defer n.dbMutex.Unlock()
+	log.Println("DeleteResource 2")
 
+	err := n.db.Delete(request.Key)
 	// Replicacion
+	log.Println("DeleteResource 3")
+	n.dbMutex.Unlock()
+	log.Println("DeleteResource 4")
 	succ := n.getSuccessor()
 	if !bytes.Equal(succ.NodeID, n.Info.NodeID) {
 		n.SendDelete(succ.EndPoint, request.Key)
 	}
 
-	return n.db.Delete(request.Key)
+	return err
 }
 
 func (n *Node) ReplicateResource(request *DataKeyRequest, response *EmptyResponse) error {
+	log.Println("ReplicateResource 1")
 	n.dbMutex.Lock()
-	defer n.dbMutex.Unlock()
-
-	return n.db.Set(request.Key, request.Data)
+	log.Println("ReplicateResource 2")
+	err := n.db.Set(request.Key, request.Data)
+	log.Println("ReplicateResource 3")
+	n.dbMutex.Unlock()
+	log.Println("ReplicateResource 4")
+	return err
 }
 
 // Client logic for rpc
