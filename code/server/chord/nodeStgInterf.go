@@ -2,12 +2,11 @@ package chord
 
 import (
 	"encoding/json"
-	"fmt"
 )
 
 type DBChord interface {
 	GetByName(string) ([]byte, error)
-	//GetByFun(string) ([]byte, error)
+	GetByFun(string) ([]byte, error)
 	Set(string, string, []byte) error
 	Update(string, []byte) error
 	Delete(string, string) error
@@ -28,11 +27,35 @@ func (n *Node) GetByName(agentName string) ([]byte, error) {
 	return n.AskForAKey(nInfo.EndPoint, key)
 }
 
-/*
-func (n *Node) GetByFun(fun string) ([]string, error) {
-	key, err := n.getHashKey(Fun+fun)
+// arreglar si no existe el map de funciones
+func (n *Node) GetByFun(fun string) ([]byte, error) {
+	key, err := n.getHashKey(Funs)
+	if err != nil {
+		return make([]byte, 0), err
+	}
+	nInfo := n.findSuccessorOfKey(key)
+	agentsFun, err := n.AskForAKey(nInfo.EndPoint, key)
+	if err != nil {
+		return make([]byte, 0), err
+	}
+
+	var af map[string]string
+
+	err = json.Unmarshal(agentsFun, &af)
+	if err != nil {
+		return nil, err
+	}
+
+	name := af[fun]
+	key, err = n.getHashKey(name)
+	if err != nil {
+		return make([]byte, 0), err
+	}
+	nInfo = n.findSuccessorOfKey(key)
+	agent, err := n.AskForAKey(nInfo.EndPoint, key)
+
+	return agent, nil
 }
-*/
 
 func setNames(agentNames []byte, name string) ([]byte, error) {
 	var an []string
@@ -69,7 +92,6 @@ func setFunctions(agentsFun []byte, fun string, name string) ([]byte, error) {
 }
 
 func (n *Node) Set(name string, fun string, data []byte) error {
-	fmt.Println(n.Info.EndPoint)
 	// Actualiza la lista de los nombres de los agentes
 	key, err := n.getHashKey(Names)
 	if err != nil {
@@ -176,7 +198,6 @@ func deleteFun(agentsFun []byte, fun string) ([]byte, error) {
 	return json.Marshal(af)
 }
 
-// Falta arreglar error de no tener el Names o Fun
 func (n *Node) Delete(name string, fun string) error {
 
 	key, err := n.getHashKey(Names)
@@ -185,20 +206,22 @@ func (n *Node) Delete(name string, fun string) error {
 	}
 	nInfo := n.findSuccessorOfKey(key)
 	agentNames, err := n.AskForAKey(nInfo.EndPoint, key)
-	if err != nil {
+	if err != nil && err.Error() != "There is no agent with that name" {
 		return err
 	}
-	agentNames, err = deleteAgentName(agentNames, name)
-	if err != nil {
-		return err
-	}
-	err = n.SendDelete(nInfo.EndPoint, key)
-	if err != nil {
-		return err
-	}
-	err = n.SendSet(nInfo.EndPoint, key, agentNames)
-	if err != nil {
-		return err
+	if err == nil {
+		agentNames, err = deleteAgentName(agentNames, name)
+		if err != nil {
+			return err
+		}
+		err = n.SendDelete(nInfo.EndPoint, key)
+		if err != nil {
+			return err
+		}
+		err = n.SendSet(nInfo.EndPoint, key, agentNames)
+		if err != nil {
+			return err
+		}
 	}
 
 	key, err = n.getHashKey(Funs)
@@ -206,20 +229,22 @@ func (n *Node) Delete(name string, fun string) error {
 		return err
 	}
 	agentsFun, err := n.AskForAKey(nInfo.EndPoint, key)
-	if err != nil {
+	if err != nil && err.Error() != "There is no agent with that name" {
 		return err
 	}
-	agentsFun, err = deleteFun(agentsFun, fun)
-	if err != nil {
-		return err
-	}
-	err = n.SendDelete(nInfo.EndPoint, key)
-	if err != nil {
-		return err
-	}
-	err = n.SendSet(nInfo.EndPoint, key, agentsFun)
-	if err != nil {
-		return err
+	if err == nil {
+		agentsFun, err = deleteFun(agentsFun, fun)
+		if err != nil {
+			return err
+		}
+		err = n.SendDelete(nInfo.EndPoint, key)
+		if err != nil {
+			return err
+		}
+		err = n.SendSet(nInfo.EndPoint, key, agentsFun)
+		if err != nil {
+			return err
+		}
 	}
 
 	key, err = n.getHashKey(name)
