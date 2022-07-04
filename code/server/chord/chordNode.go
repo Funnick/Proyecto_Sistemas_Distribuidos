@@ -408,6 +408,11 @@ func (n *Node) fixKeys() {
 	succOfr := n.findSuccessorOfKey(rows[r].Key)
 
 	pred := n.getPredecessor()
+
+	if pred == nil {
+		return
+	}
+
 	if !bytes.Equal(succOfr.NodeID, pred.NodeID) && !bytes.Equal(succOfr.NodeID, n.Info.NodeID) {
 		n.dbMutex.Lock()
 		n.db.Delete(rows[r].Key)
