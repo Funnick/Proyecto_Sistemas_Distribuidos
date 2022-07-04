@@ -7,7 +7,7 @@ import (
 
 type DBChord interface {
 	GetByName(string) ([]byte, error)
-	GetByFun(string) ([]byte, error)
+	GetByFun(string) ([][]byte, error)
 	Set(string, string, []byte) error
 	Update(string, string, string, []byte) error
 	Delete(string, string) error
@@ -70,38 +70,42 @@ func (n *Node) GetByName(agentName string) ([]byte, error) {
 }
 
 // arreglar si no existe el map de funciones
-func (n *Node) GetByFun(fun string) ([]byte, error) {
+func (n *Node) GetByFun(fun string) ([][]byte, error) {
 	key, err := n.getHashKey(Funs)
 	if err != nil {
-		return make([]byte, 0), err
+		return make([][]byte, 0), err
 	}
 	nInfo := n.findSuccessorOfKey(key)
 	agentsFun, err := n.AskForAKey(nInfo.EndPoint, key)
 	if err != nil {
-		return make([]byte, 0), err
+		return make([][]byte, 0), err
 	}
 
 	// Arreglar agentsFun len 0
 
-	var af map[string]string
+	var af map[string][]string
 
 	err = json.Unmarshal(agentsFun, &af)
 	if err != nil {
 		return nil, err
 	}
 
-	name := af[fun]
-	key, err = n.getHashKey(name)
-	if err != nil {
-		return make([]byte, 0), err
+	agents := make([][]byte, 0)
+	agentNames := af[fun]
+	for i := range agentNames {
+		key, err = n.getHashKey(agentNames[i])
+		if err != nil {
+			return make([][]byte, 0), err
+		}
+		nInfo = n.findSuccessorOfKey(key)
+		agent, err := n.AskForAKey(nInfo.EndPoint, key)
+		if err != nil {
+			log.Println(err.Error())
+			continue
+		}
+		agents = append(agents, agent)
 	}
-	nInfo = n.findSuccessorOfKey(key)
-	agent, err := n.AskForAKey(nInfo.EndPoint, key)
-	if err != nil {
-		log.Println(err.Error())
-	}
-
-	return agent, nil
+	return agents, nil
 }
 
 func setNames(agentNames []byte, name string) ([]byte, error) {
@@ -121,10 +125,10 @@ func setNames(agentNames []byte, name string) ([]byte, error) {
 }
 
 func setFunctions(agentsFun []byte, fun string, name string) ([]byte, error) {
-	var af map[string]string
+	var af map[string][]string
 
 	if len(agentsFun) == 0 {
-		af = make(map[string]string, 1)
+		af = make(map[string][]string, 1)
 	} else {
 		err := json.Unmarshal(agentsFun, &af)
 		if err != nil {
@@ -133,7 +137,21 @@ func setFunctions(agentsFun []byte, fun string, name string) ([]byte, error) {
 	}
 
 	// kmp
-	af[fun] = name
+	var check bool = false
+	for k := range af {
+		if k == fun {
+			agentNames := af[fun]
+			agentNames = append(agentNames, name)
+			af[fun] = agentNames
+			check = true
+			break
+		}
+	}
+	if !check {
+		agentNames := make([]string, 1)
+		agentNames[0] = name
+		af[fun] = agentNames
+	}
 
 	return json.Marshal(af)
 }
@@ -216,7 +234,7 @@ func (n *Node) Update(name, oldFun, newFun string, data []byte) error {
 		if err != nil {
 			return err
 		}
-		agentsFun, err = deleteFun(agentsFun, oldFun)
+		agentsFun, err = deleteFun(agentsFun, oldFun, name)
 		if err != nil {
 			return err
 		}
@@ -260,15 +278,30 @@ func deleteAgentName(agentNames []byte, name string) ([]byte, error) {
 	return json.Marshal(an)
 }
 
-func deleteFun(agentsFun []byte, fun string) ([]byte, error) {
-	var af map[string]string
+func deleteFun(agentsFun []byte, fun, name string) ([]byte, error) {
+	var af map[string][]string
 	err := json.Unmarshal(agentsFun, &af)
 	if err != nil {
 		return nil, err
 	}
 
 	// kmp
-	delete(af, fun)
+	for k := range af {
+		if k == fun {
+			agentNames := af[fun]
+			if len(agentNames) == 1 {
+				delete(af, fun)
+			} else {
+				for i := range agentNames {
+					if agentNames[i] == name {
+						agentNames = append(agentNames[:i], agentNames[i+1:]...)
+						af[fun] = agentNames
+					}
+				}
+			}
+			break
+		}
+	}
 
 	return json.Marshal(af)
 }
@@ -307,7 +340,7 @@ func (n *Node) Delete(name string, fun string) error {
 		return err
 	}
 	if err == nil {
-		agentsFun, err = deleteFun(agentsFun, fun)
+		agentsFun, err = deleteFun(agentsFun, fun, name)
 		if err != nil {
 			return err
 		}

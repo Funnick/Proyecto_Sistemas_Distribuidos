@@ -250,7 +250,7 @@ func SearchAgentNameRequest(name string) (resp string, agent Agent) {
 		log.Println(err)
 		return err.Error(), Agent{}
 	}
-	var responseMessage SearchAgentMessageResponse
+	var responseMessage SearchAgentNameMessageResponse
 	err = json.Unmarshal(body, &responseMessage)
 	if err != nil {
 		log.Println(err)
@@ -259,10 +259,10 @@ func SearchAgentNameRequest(name string) (resp string, agent Agent) {
 	if len(responseMessage.Message) > 0 {
 		return responseMessage.Message, Agent{}
 	}
-	return "\u2713 OK", responseMessage.AgentsFound
+	return "\u2713 OK", responseMessage.AgentFound
 }
 
-func SearchAgentDescRequest(description string) (resp string, agent Agent) {
+func SearchAgentDescRequest(description string) (resp string, agent []Agent) {
 	client := http.Client{Timeout: 5 * time.Second}
 	var requestMessage SearchAgentDescMessage = SearchAgentDescMessage{
 		Description: description,
@@ -270,7 +270,7 @@ func SearchAgentDescRequest(description string) (resp string, agent Agent) {
 	jsonRequestMessage, err := json.Marshal(requestMessage)
 	if err != nil {
 		log.Println(err)
-		return err.Error(), Agent{}
+		return err.Error(), []Agent{}
 	}
 
 	count := len(url)
@@ -292,22 +292,22 @@ func SearchAgentDescRequest(description string) (resp string, agent Agent) {
 	}
 	if count == 0 {
 		log.Println(_err.Error())
-		return _err.Error(), Agent{}
+		return _err.Error(), []Agent{}
 	}
 	defer httpResp.Body.Close()
 	body, err := ioutil.ReadAll(httpResp.Body)
 	if err != nil {
 		log.Println(err)
-		return err.Error(), Agent{}
+		return err.Error(), []Agent{}
 	}
 	var responseMessage SearchAgentMessageResponse
 	err = json.Unmarshal(body, &responseMessage)
 	if err != nil {
 		log.Println(err)
-		return err.Error(), Agent{}
+		return err.Error(), []Agent{}
 	}
 	if len(responseMessage.Message) > 0 {
-		return responseMessage.Message, Agent{}
+		return responseMessage.Message, []Agent{}
 	}
 	return "\u2713 OK", responseMessage.AgentsFound
 }

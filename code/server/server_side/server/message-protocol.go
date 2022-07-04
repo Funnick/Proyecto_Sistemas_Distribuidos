@@ -28,6 +28,11 @@ type SearchAgentDescMessage struct {
 }
 
 type SearchAgentMessageResponse struct {
+	AgentFound []Agent `json:"agent"`
+	Message    string  `json:"message"`
+}
+
+type SearchAgentNameMessageResponse struct {
 	AgentFound Agent  `json:"agent"`
 	Message    string `json:"message"`
 }

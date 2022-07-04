@@ -180,10 +180,12 @@ func Commnads() {
 				LoadConfig(conf)
 				if c.NArg() > 0 {
 					description := strings.Join(c.Args(), " ")
-					resp, agent := SearchAgentDescRequest(description)
+					resp, agents := SearchAgentDescRequest(description)
 					fmt.Println(resp)
 					if resp != "No existe el agente" {
-						fmt.Println(agent.Print())
+						for i := range agents {
+							fmt.Println(agents[i].Print())
+						}
 					}
 					return nil
 				}

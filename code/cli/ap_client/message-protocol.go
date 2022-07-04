@@ -13,6 +13,11 @@ type CreateAgentMessage struct {
 	Documentation string `json:"documentation"`
 }
 
+type SearchAgentNameMessageResponse struct {
+	AgentFound Agent  `json:"agent"`
+	Message    string `json:"message"`
+}
+
 type DeleteAgentMessage struct {
 	Name     string `json:"name"`
 	Password string `json:"password"`
@@ -31,8 +36,8 @@ type SearchAgentDescMessage struct {
 }
 
 type SearchAgentMessageResponse struct {
-	AgentsFound Agent  `json:"agent"`
-	Message     string `json:"message"`
+	AgentsFound []Agent `json:"agent"`
+	Message     string  `json:"message"`
 }
 
 type UpdateAgentMessage struct {
