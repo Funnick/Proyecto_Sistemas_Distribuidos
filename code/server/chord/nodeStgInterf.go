@@ -44,7 +44,7 @@ func (n *Node) GetAllFun() ([]byte, error) {
 		log.Println(err.Error())
 		return nil, err
 	}
-	var af map[string]string
+	var af map[string][]string
 
 	err = json.Unmarshal(agentsFun, &af)
 	if err != nil {
@@ -296,6 +296,7 @@ func deleteFun(agentsFun []byte, fun, name string) ([]byte, error) {
 					if agentNames[i] == name {
 						agentNames = append(agentNames[:i], agentNames[i+1:]...)
 						af[fun] = agentNames
+						break
 					}
 				}
 			}

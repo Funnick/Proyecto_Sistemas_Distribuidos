@@ -311,6 +311,7 @@ func (pl *Platform) Multicast(knowIP string) string {
 		}
 		for i := 1; i < 10; i++ {
 			tryIP := subnet + strconv.Itoa(i)
+			log.Println("Intentando conectar con " + tryIP)
 			client, err := net.Dial("tcp", tryIP+":6002")
 			if err != nil {
 				continue
