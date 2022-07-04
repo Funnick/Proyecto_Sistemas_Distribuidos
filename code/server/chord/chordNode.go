@@ -3,7 +3,6 @@ package chord
 import (
 	"bytes"
 	"crypto/sha1"
-	"fmt"
 	"log"
 	"math/rand"
 	"sync"
@@ -406,13 +405,10 @@ func (n *Node) fixKeys() {
 
 	r := rand.Intn(l)
 	succOfr := n.findSuccessorOfKey(rows[r].Key)
-
 	pred := n.getPredecessor()
-
 	if pred == nil {
 		return
 	}
-
 	if !bytes.Equal(succOfr.NodeID, pred.NodeID) && !bytes.Equal(succOfr.NodeID, n.Info.NodeID) {
 		n.dbMutex.Lock()
 		n.db.Delete(rows[r].Key)
@@ -473,7 +469,7 @@ func (n *Node) Ping(addr Address) bool {
 func (n *Node) AskForAKey(addr Address, key []byte) ([]byte, error) {
 	data, err := askForAKey(addr, key)
 	if err != nil {
-		log.Println(err.Error(), "AFAK")
+		log.Println(err.Error())
 		return nil, err
 	}
 	return data, nil
@@ -512,26 +508,20 @@ func (n *Node) SendRepDel(addr Address, key []byte) error {
 }
 
 func (n *Node) ReplicateKey(addr Address) error {
-	fmt.Println("Obteniendo RLock")
 	n.dbMutex.RLock()
-	fmt.Println("RLock obtenido")
 
 	log.Println(n.Info.EndPoint, "replicando al sucesor", addr)
 
 	rows, err := n.db.GetKeyData()
-	fmt.Println("Soltando RLock")
 	n.dbMutex.RUnlock()
-	fmt.Println("Suelto RLock")
 	if err != nil {
 		log.Println(err.Error())
 		return err
 	}
 
-	fmt.Println("repl succ rows len", len(rows))
 	for _, elem := range rows {
 		err = n.SendReplicate(addr, elem.Key, elem.Data)
 		if err != nil {
-			fmt.Println("repl succ")
 			log.Println(err.Error())
 		}
 	}
@@ -540,14 +530,10 @@ func (n *Node) ReplicateKey(addr Address) error {
 }
 
 func (n *Node) SendPredecessorKeys(addr Address, nID []byte) error {
-	fmt.Println("Obteniendo RLock")
 	n.dbMutex.RLock()
-	fmt.Println("RLock obtenido")
 
 	rows, err := n.db.GetKeyData()
-	fmt.Println("Soltando RLock")
 	n.dbMutex.RUnlock()
-	fmt.Println("Suelto RLock")
 
 	pred := n.getPredecessor()
 	log.Println(n.Info.EndPoint, "replicando al predecesor", addr)
@@ -557,12 +543,10 @@ func (n *Node) SendPredecessorKeys(addr Address, nID []byte) error {
 		return err
 	}
 
-	fmt.Println("repl pred rows len", len(rows))
 	if pred == nil {
 		for _, elem := range rows {
 			if bytes.Compare(elem.Key, nID) < 1 {
 				n.SendReplicate(addr, elem.Key, elem.Data)
-				fmt.Println("repl pred 1")
 			}
 		}
 	} else {
@@ -572,7 +556,6 @@ func (n *Node) SendPredecessorKeys(addr Address, nID []byte) error {
 				if err != nil {
 					log.Println(err.Error())
 				}
-				fmt.Println("repl pred 2")
 			}
 		}
 	}

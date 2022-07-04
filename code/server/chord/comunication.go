@@ -2,7 +2,6 @@ package chord
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"net"
 	"net/rpc"
@@ -65,7 +64,7 @@ func NewBroadcastServer(ip string, stopC chan struct{}) error {
 			default:
 				conn, err := listener.Accept()
 				if err != nil {
-					fmt.Println(err)
+					log.Println(err.Error())
 					return
 				}
 				conn.Close()
@@ -105,7 +104,7 @@ func RunServer(s *rpc.Server, addr Address, stopC chan struct{}) {
 			default:
 				conn, err := listener.Accept()
 				if err != nil {
-					fmt.Println(err)
+					log.Println(err.Error())
 					return
 				}
 				go s.ServeConn(conn)
@@ -174,15 +173,11 @@ func (n *Node) MakePingRPC(request *EmptyRequest, response *EmptyResponse) error
 }
 
 func (n *Node) GetResource(request *KeyRequest, response *DataResponse) error {
-	fmt.Println("GetResource 1")
 	n.dbMutex.RLock()
-	fmt.Println("GetResource 2")
 
 	data, err := n.db.GetByName(request.Key)
 
-	fmt.Println("GetResource 3")
 	n.dbMutex.RUnlock()
-	fmt.Println("GetResource 4")
 
 	if err != nil {
 		log.Println(err.Error())
@@ -194,15 +189,11 @@ func (n *Node) GetResource(request *KeyRequest, response *DataResponse) error {
 }
 
 func (n *Node) SaveResource(request *DataKeyRequest, response *EmptyResponse) error {
-	fmt.Println("SaveResource 1")
 	n.dbMutex.Lock()
-	fmt.Println("SaveResource 2")
 
 	err := n.db.Set(request.Key, request.Data)
 
-	fmt.Println("SaveResource 3")
 	n.dbMutex.Unlock()
-	fmt.Println("SaveResource 4")
 
 	// Replicacion
 	succ := n.getSuccessor()
@@ -214,19 +205,14 @@ func (n *Node) SaveResource(request *DataKeyRequest, response *EmptyResponse) er
 }
 
 func (n *Node) DeleteResource(request *KeyRequest, response *EmptyResponse) error {
-	fmt.Println("DeleteResource 1")
 	n.dbMutex.Lock()
-	fmt.Println("DeleteResource 2")
 
 	err := n.db.Delete(request.Key)
 
-	fmt.Println("DeleteResource 3")
 	n.dbMutex.Unlock()
-	fmt.Println("DeleteResource 4")
 	// Replicacion
 	succ := n.getSuccessor()
 	if !bytes.Equal(succ.NodeID, n.Info.NodeID) {
-		fmt.Println("recursivoooooo")
 		n.SendRepDel(succ.EndPoint, request.Key)
 	}
 
@@ -234,29 +220,21 @@ func (n *Node) DeleteResource(request *KeyRequest, response *EmptyResponse) erro
 }
 
 func (n *Node) ReplicateDelete(request *KeyRequest, response *EmptyResponse) error {
-	fmt.Println("ReplicateDelete 1")
 	n.dbMutex.Lock()
-	fmt.Println("ReplicateDelete 2")
 
 	err := n.db.Delete(request.Key)
 
-	fmt.Println("ReplicateDelete 3")
 	n.dbMutex.Unlock()
-	fmt.Println("ReplicateDelete 4")
 
 	return err
 }
 
 func (n *Node) ReplicateResource(request *DataKeyRequest, response *EmptyResponse) error {
-	fmt.Println("ReplicateResource 1")
 	n.dbMutex.Lock()
-	fmt.Println("ReplicateResource 2")
 
 	err := n.db.Set(request.Key, request.Data)
 
-	fmt.Println("ReplicateResource 3")
 	n.dbMutex.Unlock()
-	fmt.Println("ReplicateResource 4")
 
 	return err
 }

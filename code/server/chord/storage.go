@@ -3,7 +3,7 @@ package chord
 import (
 	"bytes"
 	"encoding/gob"
-	"fmt"
+	"log"
 	"os"
 )
 
@@ -34,7 +34,7 @@ func NewDataBase(fileName string) *DataBasePl {
 
 	file, err := os.OpenFile(db.fileName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return nil
 	}
 	defer file.Close()
@@ -45,14 +45,14 @@ func NewDataBase(fileName string) *DataBasePl {
 func (db *DataBasePl) readAll() ([]RowData, error) {
 	file, err := os.Open(db.fileName)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return nil, err
 	}
 	defer file.Close()
 
 	fileInfo, err := file.Stat()
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return nil, err
 	}
 
@@ -64,7 +64,7 @@ func (db *DataBasePl) readAll() ([]RowData, error) {
 	var rows []RowData
 	dec := gob.NewDecoder(file)
 	if err := dec.Decode(&rows); err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return nil, err
 	}
 
@@ -74,14 +74,14 @@ func (db *DataBasePl) readAll() ([]RowData, error) {
 func (db *DataBasePl) writeAll(rows []RowData) error {
 	file, err := os.Create(db.fileName)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return err
 	}
 	defer file.Close()
 
 	enc := gob.NewEncoder(file)
 	if err := enc.Encode(rows); err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return err
 	}
 
@@ -130,14 +130,12 @@ func (db *DataBasePl) Set(vKey []byte, vData []byte) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Setting")
 	for _, elem := range rows {
 		if bytes.Equal(elem.Key, vKey) {
 			return StorageError{message: "Existe otro agente con ese nombre"}
 		}
 	}
 	var newRows []RowData = append(rows, RowData{Key: vKey, Data: vData})
-	fmt.Println(len(newRows))
 	err = db.writeAll(newRows)
 	if err != nil {
 		return err

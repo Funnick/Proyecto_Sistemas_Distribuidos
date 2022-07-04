@@ -8,13 +8,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
 
-var url string
+var url []string
 
-func setURL(newURL string) {
+func setURL(newURL []string) {
 	url = newURL
 }
 
@@ -35,21 +36,34 @@ func LoadConfig(path string) {
 	for _, line := range lines {
 		splitLine := strings.Split(line, " ")
 		if splitLine[0] == "url" {
-			setURL(splitLine[1])
+			url = append(url, splitLine[1])
 		}
 	}
 }
 
 // Request all agent to the server
 func GetAgentNamesRequest() (resp string, agentList []string) {
-	client := http.Client{Timeout: 10 * time.Second}
-	response, err := client.Get(url + "/names")
-	if err != nil {
-		log.Println(err)
-		return err.Error(), []string{}
+	client := http.Client{Timeout: 5 * time.Second}
+	count := len(url)
+	var _err error
+	var httpResp *http.Response
+	for i := 0; i < len(url); i++ {
+		response, err := client.Get(url[i] + "/names")
+		if err != nil {
+			count--
+			_err = err
+			continue
+		} else {
+			httpResp = response
+			break
+		}
 	}
-	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
+	if count == 0 {
+		log.Println(_err.Error())
+		return _err.Error(), []string{}
+	}
+	defer httpResp.Body.Close()
+	body, err := ioutil.ReadAll(httpResp.Body)
 	if err != nil {
 		log.Println(err)
 		return err.Error(), []string{}
@@ -64,14 +78,27 @@ func GetAgentNamesRequest() (resp string, agentList []string) {
 }
 
 func GetAgentDescsRequest() (resp string, agentList []string) {
-	client := http.Client{Timeout: 10 * time.Second}
-	response, err := client.Get(url + "/descriptions")
-	if err != nil {
-		log.Println(err)
-		return err.Error(), []string{}
+	client := http.Client{Timeout: 5 * time.Second}
+	count := len(url)
+	var _err error
+	var httpResp *http.Response
+	for i := 0; i < len(url); i++ {
+		response, err := client.Get(url[i] + "/descriptions")
+		if err != nil {
+			count--
+			_err = err
+			continue
+		} else {
+			httpResp = response
+			break
+		}
 	}
-	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
+	if count == 0 {
+		log.Println(_err.Error())
+		return _err.Error(), []string{}
+	}
+	defer httpResp.Body.Close()
+	body, err := ioutil.ReadAll(httpResp.Body)
 	if err != nil {
 		log.Println(err)
 		return err.Error(), []string{}
@@ -96,19 +123,34 @@ func CreateAgentRequest(name, ip, port, password, description, documentation str
 		Description:   description,
 		Documentation: documentation,
 	}
-	client := http.Client{Timeout: 10 * time.Second}
+	client := http.Client{Timeout: 5 * time.Second}
 	messageJson, err := json.Marshal(agentMessage)
 	if err != nil {
 		log.Println(err)
 		return err.Error()
 	}
-	response, err := client.Post(url+"/create", "aplication/json", bytes.NewBuffer(messageJson))
-	if err != nil {
-		log.Println(err)
-		return err.Error()
+
+	count := len(url)
+	var _err error
+	var httpResp *http.Response
+	for i := 0; i < len(url); i++ {
+		response, err := client.Post(url[i]+"/create", "aplication/json", bytes.NewBuffer(messageJson))
+		if err != nil {
+			count--
+			_err = err
+			continue
+		} else {
+			httpResp = response
+			break
+		}
 	}
-	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
+	if count == 0 {
+		log.Println(_err.Error())
+		return _err.Error()
+	}
+
+	defer httpResp.Body.Close()
+	body, err := ioutil.ReadAll(httpResp.Body)
 	if err != nil {
 		log.Println(err)
 		return err.Error()
@@ -124,7 +166,7 @@ func CreateAgentRequest(name, ip, port, password, description, documentation str
 
 // Delete an agent from the server
 func DeleteAgentRequest(name string, password string) (resp string) {
-	client := http.Client{Timeout: 10 * time.Second}
+	client := http.Client{Timeout: 5 * time.Second}
 	var requestMessage DeleteAgentMessage = DeleteAgentMessage{
 		Name: name, Password: password,
 	}
@@ -133,20 +175,29 @@ func DeleteAgentRequest(name string, password string) (resp string) {
 		log.Println(err)
 		return err.Error()
 	}
-	request, err := http.NewRequest(http.MethodDelete, url+"/delete",
-		bytes.NewBuffer(jsonRequestMessage))
-	if err != nil {
-		log.Println(err)
-		return err.Error()
+
+	count := len(url)
+	var _err error
+	var httpResp *http.Response
+	for i := 0; i < len(url); i++ {
+		request, _ := http.NewRequest(http.MethodDelete, url[i]+"/delete",
+			bytes.NewBuffer(jsonRequestMessage))
+		request.Header.Add("Accept", "application/json")
+		response, err := client.Do(request)
+		if err != nil {
+			count--
+			_err = err
+		} else {
+			httpResp = response
+			break
+		}
 	}
-	request.Header.Add("Accept", "application/json")
-	response, err := client.Do(request)
-	if err != nil {
-		log.Println(err)
-		return err.Error()
+	if count == 0 {
+		log.Println(_err.Error())
+		return _err.Error()
 	}
-	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
+	defer httpResp.Body.Close()
+	body, err := ioutil.ReadAll(httpResp.Body)
 	if err != nil {
 		log.Println(err)
 		return err.Error()
@@ -162,7 +213,7 @@ func DeleteAgentRequest(name string, password string) (resp string) {
 
 // Search an Agent
 func SearchAgentNameRequest(name string) (resp string, agent Agent) {
-	client := http.Client{Timeout: 10 * time.Second}
+	client := http.Client{Timeout: 5 * time.Second}
 	var requestMessage SearchAgentNameMessage = SearchAgentNameMessage{
 		Name: name,
 	}
@@ -171,20 +222,30 @@ func SearchAgentNameRequest(name string) (resp string, agent Agent) {
 		log.Println(err)
 		return err.Error(), Agent{}
 	}
-	request, err := http.NewRequest(http.MethodGet, url+"/searchbyname",
-		bytes.NewBuffer(jsonRequestMessage))
-	if err != nil {
-		log.Println(err)
-		return err.Error(), Agent{}
+
+	count := len(url)
+	var _err error
+	var httpResp *http.Response
+	for i := 0; i < len(url); i++ {
+		request, _ := http.NewRequest(http.MethodGet, url[i]+"/searchbyname",
+			bytes.NewBuffer(jsonRequestMessage))
+		request.Header.Add("Accept", "application/json")
+		response, err := client.Do(request)
+		if err != nil {
+			count--
+			_err = err
+			continue
+		} else {
+			httpResp = response
+			break
+		}
 	}
-	request.Header.Add("Accept", "application/json")
-	response, err := client.Do(request)
-	if err != nil {
-		log.Println(err)
-		return err.Error(), Agent{}
+	if count == 0 {
+		log.Println(_err.Error())
+		return _err.Error(), Agent{}
 	}
-	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
+	defer httpResp.Body.Close()
+	body, err := ioutil.ReadAll(httpResp.Body)
 	if err != nil {
 		log.Println(err)
 		return err.Error(), Agent{}
@@ -202,7 +263,7 @@ func SearchAgentNameRequest(name string) (resp string, agent Agent) {
 }
 
 func SearchAgentDescRequest(description string) (resp string, agent Agent) {
-	client := http.Client{Timeout: 10 * time.Second}
+	client := http.Client{Timeout: 5 * time.Second}
 	var requestMessage SearchAgentDescMessage = SearchAgentDescMessage{
 		Description: description,
 	}
@@ -211,20 +272,30 @@ func SearchAgentDescRequest(description string) (resp string, agent Agent) {
 		log.Println(err)
 		return err.Error(), Agent{}
 	}
-	request, err := http.NewRequest(http.MethodGet, url+"/searchbydesc",
-		bytes.NewBuffer(jsonRequestMessage))
-	if err != nil {
-		log.Println(err)
-		return err.Error(), Agent{}
+
+	count := len(url)
+	var _err error
+	var httpResp *http.Response
+	for i := 0; i < len(url); i++ {
+		request, _ := http.NewRequest(http.MethodGet, url[i]+"/searchbydesc",
+			bytes.NewBuffer(jsonRequestMessage))
+		request.Header.Add("Accept", "application/json")
+		response, err := client.Do(request)
+		if err != nil {
+			count--
+			_err = err
+			continue
+		} else {
+			httpResp = response
+			break
+		}
 	}
-	request.Header.Add("Accept", "application/json")
-	response, err := client.Do(request)
-	if err != nil {
-		log.Println(err)
-		return err.Error(), Agent{}
+	if count == 0 {
+		log.Println(_err.Error())
+		return _err.Error(), Agent{}
 	}
-	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
+	defer httpResp.Body.Close()
+	body, err := ioutil.ReadAll(httpResp.Body)
 	if err != nil {
 		log.Println(err)
 		return err.Error(), Agent{}
@@ -243,7 +314,7 @@ func SearchAgentDescRequest(description string) (resp string, agent Agent) {
 
 func UpdateAgentRequest(name, password, newIP, newPort,
 	newPassword, newDescription, newDocumentation string) (resp string) {
-	client := http.Client{Timeout: 10 * time.Second}
+	client := http.Client{Timeout: 5 * time.Second}
 	var requestMessage UpdateAgentMessage = UpdateAgentMessage{
 		Name:             name,
 		Password:         password,
@@ -258,20 +329,30 @@ func UpdateAgentRequest(name, password, newIP, newPort,
 		log.Println(err)
 		return
 	}
-	request, err := http.NewRequest(http.MethodPut, url+"/update",
-		bytes.NewBuffer(jsonRequestMessage))
-	if err != nil {
-		log.Println(err)
-		return err.Error()
+
+	count := len(url)
+	var _err error
+	var httpResp *http.Response
+	for i := 0; i < len(url); i++ {
+		request, _ := http.NewRequest(http.MethodPut, url[i]+"/update",
+			bytes.NewBuffer(jsonRequestMessage))
+		request.Header.Add("Accept", "application/json")
+		response, err := client.Do(request)
+		if err != nil {
+			count--
+			_err = err
+			continue
+		} else {
+			httpResp = response
+			break
+		}
 	}
-	request.Header.Add("Accept", "application/json")
-	response, err := client.Do(request)
-	if err != nil {
-		log.Println(err)
-		return err.Error()
+	if count == 0 {
+		log.Println(_err.Error())
+		return _err.Error()
 	}
-	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
+	defer httpResp.Body.Close()
+	body, err := ioutil.ReadAll(httpResp.Body)
 	if err != nil {
 		log.Println(err)
 		return err.Error()
@@ -283,4 +364,22 @@ func UpdateAgentRequest(name, password, newIP, newPort,
 		return err.Error()
 	}
 	return responseMessage.Message
+}
+
+func NamesPrint(names []string) string {
+	var strNames string
+	name := "Nombre "
+	for i, elem := range names {
+		strNames += name + strconv.Itoa(i+1) + ": " + elem + "\n"
+	}
+	return strNames
+}
+
+func DescsPrint(descs []string) string {
+	var strDescs string
+	name := "Descripción "
+	for i, elem := range descs {
+		strDescs += name + strconv.Itoa(i+1) + ": " + elem + "\n"
+	}
+	return strDescs
 }
