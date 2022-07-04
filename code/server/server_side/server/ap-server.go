@@ -246,10 +246,20 @@ func (pl *Platform) SearchByDesc(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(responseMessage)
 		return
 	}
+
 	var agent Agent
-	json.Unmarshal(agentsFound, &agent)
+	agents := make([]Agent, 0)
+	for i := range agentsFound {
+		err = json.Unmarshal(agentsFound[i], &agent)
+		if err != nil {
+			log.Println(err.Error())
+			return
+		}
+		agents = append(agents, agent)
+	}
+
 	responseMessage.Message = ""
-	responseMessage.AgentFound = agent
+	responseMessage.AgentFound = agents
 	json.NewEncoder(w).Encode(responseMessage)
 }
 
@@ -261,7 +271,7 @@ func (pl *Platform) SearchByName(w http.ResponseWriter, r *http.Request) {
 		log.Println(err.Error())
 		return
 	}
-	var responseMessage SearchAgentMessageResponse
+	var responseMessage SearchAgentNameMessageResponse
 	agentsFound, err := pl.node.GetByName(requestMessage.Name)
 	if err != nil {
 		log.Println(err.Error())
