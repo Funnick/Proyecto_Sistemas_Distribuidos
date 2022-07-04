@@ -26,17 +26,19 @@ El proyecto está dividido en tres paquetes, el *package server*, donde se desar
 
 La API del servidor brinda las siguientes funcionalidades:
 
-| Función                  | Descripción                           |
-| ------------------------ | ------------------------------------- |
-| `CreateNewAgent(...)`    | Registrar un agente en la plataforma. |
-| `DeleteAgent(...)`       | Eliminar un agente.                   |
-| `UpdateAgent(...)`       | Editar los campos de un agente.       |
-| `SearchAgentByName(...)` | Buscar un agente por su nombre.       |
-| `SearchAgentByDesc(...)` | Buscar un agente por su descipción.   |
+| Función                  | Descripción                                    |
+| ------------------------ | ---------------------------------------------- |
+| `CreateNewAgent(...)`    | Registrar un agente en la plataforma.          |
+| `DeleteAgent(...)`       | Eliminar un agente.                            |
+| `UpdateAgent(...)`       | Editar los campos de un agente.                |
+| `SearchAgentByName(...)` | Buscar un agente por su nombre.                |
+| `SearchAgentByDesc(...)` | Buscar un agente por su descipción.            |
+| `GetAgentsDescs(...)`    | Listar todos los descripciones de los agentes. |
+| `GetAgentsNames(...)`    | Listar todos los nombres de los agentes.       |
 
 ## DHT-Chord
 
-Explicación de las particularides de lo que hacemos con Chord
+Implementamos un DHT de tipo Chord, basándonos en el artículo *"Chord: A scalable peer-to-peer lookup service for Internet applications"*, con algunas, para nosotros, mejoras.
 
 ## CLI
 
@@ -96,11 +98,11 @@ Para buscar dentro de la lista de agentes disponibles usando un nombre invocarem
 Ejemplos de uso del programa:
 
 ``` shell
-go run cli.go S lorem impsum 
+go run cli.go S "lorem impsum"
 ```
 
 ``` shell
-go run cli.go search-name-agent lorem impsum 
+go run cli.go search-name-agent "lorem impsum"
 ```
 
 
@@ -112,11 +114,11 @@ Para buscar dentro de la lista de agentes disponibles por descripción invocarem
 Ejemplos de uso del programa:
 
 ``` shell
-go run cli.go Sd lorem impsum 
+go run cli.go Sd "lorem impsum ""
 ```
 
 ``` shell
-go run cli.go search-desc-agent lorem impsum 
+go run cli.go search-desc-agent "lorem impsum"
 ```
 
 
@@ -145,21 +147,35 @@ go run cli.go update-agent -doc documentation -password contraseña -port 444 -d
 
 
 
-#### Listar Agentes 
+#### Listar agentes por su nombre 
 
-Para obtener una lista de agente disponibles invocaremos el comando **get-agent** o su forma abreviada **A**.
+Para obtener una lista de agentes disponibles por su nombre invocaremos el comando **get-agent-name** o su forma abreviada **An**.
 
 Ejemplos de uso del programa:
 
 ```shell
-go run cli.go get-agents
+go run cli.go get-agents-name
 ```
 
 ```sh
-go run cli.go A 
+go run cli.go An
 ```
 
+#### Listar agentes por su descripción
 
+Para obtener una lista de agente disponibles por su descripción invocaremos el comando **get-agent-desc** o su forma abreviada **Ad**.
+
+Ejemplos de uso del programa:
+
+```shell
+go run cli.go get-agents-desc
+```
+
+```sh
+go run cli.go Ad
+```
+
+#### 
 
 ### Opciones 
 
@@ -173,7 +189,7 @@ go run cli.go --config /path/to/config get-agents
 
 ## Replicación
 
-La replicación cae en manos de la tabla de hash distribuida. Cada nodo replicará los datos almacenados en la tabla de su predecesor en su propia tabla, permitiendo así que si su predecesor cae, su información no se perderá.
+La replicación cae en manos de la tabla de hash distribuida. Cada nodo replicará los datos almacenados en la tabla de su predecesor en su propia tabla, permitiendo así que si su predecesor cae, su información no se pierda.
 
 ## Consistencia
 
