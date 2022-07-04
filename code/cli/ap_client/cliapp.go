@@ -55,22 +55,24 @@ func Commnads() {
 		{
 			Name:    "get-agents-name",
 			Aliases: []string{"An"},
-			Usage:   "Request all agent names to the server",
+			Usage:   "Devuelve todos los agentes del servidor por sus nombres",
 			Action: func(c *cli.Context) error {
 				LoadConfig(conf)
 				resp, agentList := GetAgentNamesRequest()
-				fmt.Println(resp, agentList)
+				fmt.Println(resp)
+				fmt.Println(NamesPrint(agentList))
 				return nil
 			},
 		},
 		{
 			Name:    "get-agents-desc",
 			Aliases: []string{"Ad"},
-			Usage:   "Request all agent description to the server",
+			Usage:   "Devuelve todos los agentes del servidor por sus descripciones",
 			Action: func(c *cli.Context) error {
 				LoadConfig(conf)
 				resp, agentList := GetAgentDescsRequest()
-				fmt.Println(resp, agentList)
+				fmt.Println(resp)
+				fmt.Println(DescsPrint(agentList))
 				return nil
 			},
 		},
@@ -78,7 +80,7 @@ func Commnads() {
 		{
 			Name:    "create-agent",
 			Aliases: []string{"C"},
-			Usage:   "Create new agent using the parameters [-n name] [-i ip] [-pr port] [-des description] [-doc documentation]",
+			Usage:   "Crea un nuevo agente usando los parámetros [-n name] [-i ip] [-pr port] [-des description] [-doc documentation]",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "name, n",
@@ -138,7 +140,7 @@ func Commnads() {
 		{
 			Name:    "delete-agent",
 			Aliases: []string{"D"},
-			Usage:   "Delete an agent from the server using [-n name] [-p pswrd] parameters",
+			Usage:   "Borrar un agente del servidor usando los parámetros [-n name] [-p pswrd]",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "name, n",
@@ -173,47 +175,47 @@ func Commnads() {
 		{
 			Name:    "search-desc-agent",
 			Aliases: []string{"Sd"},
-			Usage:   "Search an Agent by description",
+			Usage:   "Buscar agente por su descripción",
 			Action: func(c *cli.Context) error {
 				LoadConfig(conf)
 				if c.NArg() > 0 {
 					description := strings.Join(c.Args(), " ")
 					resp, agent := SearchAgentDescRequest(description)
 					fmt.Println(resp)
-					if resp != "There is no agent with that name" {
+					if resp != "No existe el agente" {
 						fmt.Println(agent.Print())
 					}
 					return nil
 				}
-				fmt.Println("Please insert a valid string to search")
-				return cli.NewExitError("Empty search string", 1)
+				fmt.Println("Por favor, inserte una cadena válida para la búsqueda")
+				return cli.NewExitError("Cadena de búsqueda vacía", 1)
 			},
 		},
 
 		{
 			Name:    "search-name-agent",
 			Aliases: []string{"S"},
-			Usage:   "Search an Agent by name",
+			Usage:   "Buscar agente por nombre",
 			Action: func(c *cli.Context) error {
 				LoadConfig(conf)
 				if c.NArg() > 0 {
 					description := strings.Join(c.Args(), " ")
 					resp, agent := SearchAgentNameRequest(description)
 					fmt.Println(resp)
-					if resp != "There is no agent with that name" {
+					if resp != "No existe el agente" {
 						fmt.Println(agent.Print())
 					}
 					return nil
 				}
-				fmt.Println("Please insert a valid string to search")
-				return cli.NewExitError("Empty search string", 1)
+				fmt.Println("Por favor, inserte una cadena válida para la búsqueda")
+				return cli.NewExitError("Cadena de búsqueda vacía", 1)
 			},
 		},
 
 		{
 			Name:    "update-agent",
 			Aliases: []string{"U"},
-			Usage:   "Update an existing agent using the parameters [-n name] [-p pswrd] [-i ip] [-pr port] [-np newpsword] [-des description] [-doc documentaion]",
+			Usage:   "Actualiza un agente existente con los parámetros [-n name] [-p pswrd] [-i ip] [-pr port] [-np newpsword] [-des description] [-doc documentaion]",
 
 			Flags: []cli.Flag{
 				&cli.StringFlag{

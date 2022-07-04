@@ -195,7 +195,7 @@ func (pl *Platform) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 	desc := agentF.Description
 
 	if requestMessage.Password != agentF.Password {
-		responseMessage.Message = "Wrong password"
+		responseMessage.Message = "Contraseña incorrecta"
 		json.NewEncoder(w).Encode(responseMessage)
 		return
 	}
